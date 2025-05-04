@@ -1,0 +1,4 @@
+
+[submodule "generators/graph500"]
+	path = generators/graph500
+	url = https://github.com/graph500/graph500
