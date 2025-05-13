@@ -140,7 +140,6 @@ def read_sparse_matrix_range_config(config, size):
         )
 
     limit = config[size]["suite_sparse_matrix_range"]["limit"]
-    print(limit)
 
     if limit <= 0:
         raise Exception(
@@ -184,4 +183,4 @@ def download_range(config, size):
         for full_name in skipped_matrices:
             print(f"\t{full_name}")
     else:
-        print(f"\n{colors.color_green('All matrices were found successfully.')}")
+        print(f"\n{colors.color_green('All matrices were downloaded successfully.')}")

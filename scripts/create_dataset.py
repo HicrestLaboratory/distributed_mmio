@@ -51,9 +51,6 @@ def main():
             choice = input("Enter your choice (1-2): ").strip()
             if choice == "1":
                 graph500_generator.generate(config, size)
-            if choice == "2":
-                break
-            print()
         elif choice == "2":
             print("suite sparce matrix list option has been selected\n")
             suite_sparse_matrix_downloader.download_list(config, size)

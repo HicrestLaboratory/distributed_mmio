@@ -1,8 +1,22 @@
 # distributed_mmio
 
-## Dataset
+## Cloning
 
-To be able to run the script that produces data for your experiments you should install conda with all the required packages and configure
+To clone this repo with all the git submodules initialized run the following command
+
+```
+git clone --recurse-submodules https://github.com/HicrestLaboratory/distributed_mmio.git
+```
+
+If you already cloned the repo and initialize recursively the submodules
+
+```
+git submodule update --init --recursive
+```
+
+## Dataset creation
+
+To be able to run the script that produces data for your experiments you should install `conda` with all the required packages and configure
 the yaml configuration file with the data sources of your choice.
 
 Install conda with your favorite package manager and then create a new environment with the following command:
@@ -22,4 +36,4 @@ Once the config file is configured, just run the following command
 python3 scripts/create_dataset.py
 ```
 
-This way you will start the cli tool that will guide you with the data creation.
+This way you will start the CLI tool that will guide you with the data creation process.
