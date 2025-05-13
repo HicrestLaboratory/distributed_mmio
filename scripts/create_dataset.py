@@ -33,15 +33,15 @@ def show_sources_menu():
     print("\nChoose your source of data:\n")
     print("1. generators")
     print("2. suite sparce matrix list")
-    print("3. suite sparce matrix ssgetpy util")
-    print("4. Exit program\n")
+    # print("3. suite sparce matrix range")
+    print("3. Exit program\n")
 
 
 def show_generators_menu():
     print("\nChoose what generator of data to use:\n")
     print("1. graph500")
-    print("2. Matrix Market")
-    print("3. Exit program\n")
+    # print("2. Matrix Market")
+    print("2. Exit program\n")
 
 
 def main():
@@ -49,27 +49,26 @@ def main():
         size = get_dataset_size()
         config = utils.read_config_file()
         show_sources_menu()
-        choice = input("Enter your choice (1-4): ").strip()
+        choice = input("Enter your choice (1-3): ").strip()
         if choice == "1":
             print("generators option has been selected")
             show_generators_menu()
-            choice = input("Enter your choice (1-3): ").strip()
+            choice = input("Enter your choice (1-2): ").strip()
             if choice == "1":
                 graph500_generator.generate(config, size)
             if choice == "2":
-                # Matrix Market
-                pass
+                break
             print()
         elif choice == "2":
             print("suite sparce matrix list option has been selected\n")
             suite_sparse_matrix.download(config, size)
+        # elif choice == "3":
+        #     print("suite sparce matrix range option has been selected")
         elif choice == "3":
-            print("suite sparce matrix range option has been selected")
-        elif choice == "4":
             print("Exiting.")
             break
         else:
-            print("Invalid choice. Please enter a number from 1 to 4.")
+            print("Invalid choice. Please enter a number from 1 to 3.")
 
 
 if __name__ == "__main__":
