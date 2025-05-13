@@ -1,5 +1,6 @@
 import utils
 import graph500_generator
+import suite_sparse_matrix
 
 # TODO:
 # 2. Look at the include folder
@@ -22,34 +23,25 @@ def get_dataset_size():
 
 
 def show_sizes_menu():
-    print()
-    print("Choose the size of data to produce:")
-    print()
+    print("\nChoose the size of data to produce:\n")
     print("1. small")
     print("2. large")
-    print("3. Exit program")
-    print()
+    print("3. Exit program\n")
 
 
 def show_sources_menu():
-    print()
-    print("Choose your source of data:")
-    print()
+    print("\nChoose your source of data:\n")
     print("1. generators")
     print("2. suite sparce matrix list")
     print("3. suite sparce matrix ssgetpy util")
-    print("4. Exit program")
-    print()
+    print("4. Exit program\n")
 
 
 def show_generators_menu():
-    print()
-    print("Choose what generator of data to use:")
-    print()
+    print("\nChoose what generator of data to use:\n")
     print("1. graph500")
     print("2. Matrix Market")
-    print("3. Exit program")
-    print()
+    print("3. Exit program\n")
 
 
 def main():
@@ -64,11 +56,15 @@ def main():
             choice = input("Enter your choice (1-3): ").strip()
             if choice == "1":
                 graph500_generator.generate(config, size)
+            if choice == "2":
+                # Matrix Market
+                pass
             print()
         elif choice == "2":
-            print("suite sparce matrix list option has been selected")
+            print("suite sparce matrix list option has been selected\n")
+            suite_sparse_matrix.download(config, size)
         elif choice == "3":
-            print("suite sparce matrix ssgetpy util has been selected")
+            print("suite sparce matrix range option has been selected")
         elif choice == "4":
             print("Exiting.")
             break

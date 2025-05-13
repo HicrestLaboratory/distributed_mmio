@@ -1,0 +1,98 @@
+import os
+
+import ssgetpy
+import utils
+import colors
+
+# Constants
+YAML_PATH = "config.yaml"  # Adjust if needed
+LIST_FILE = "AlreadyDownloadedList.txt"
+
+
+def read_sparse_matrix_config(config, size):
+    if not size in config:
+        raise Exception(
+            f"{colors.color_red('size')} key is not configured properly. Refer to the config.example.yaml file"
+        )
+
+    if not "suite_sparse_matrix_list" in config[size]:
+        raise Exception(
+            f"{colors.color_red('suite_sparse_matrix_list')} key is not configured properly. Refer to the config.example.yaml file"
+        )
+
+    suite_sparce_matrix_list = config[size]["suite_sparse_matrix_list"]
+
+    if suite_sparce_matrix_list is None:
+        raise Exception(
+            f"{colors.color_red('suite_sparse_matrix_list')} is empty. Refer to the config.example.yaml file"
+        )
+
+    processed_suite_sparse_matrix_list = []
+
+    for group_and_name in suite_sparce_matrix_list:
+        if isinstance(group_and_name, str):
+            parts = group_and_name.split("/")
+            if len(parts) == 2:
+                processed_suite_sparse_matrix_list.append(
+                    (group_and_name, parts[0], parts[1])
+                )
+            else:
+                print(
+                    f"{colors.color_red(group_and_name)} has an invalid format. Refer to the config.example.yaml file"
+                )
+
+    return processed_suite_sparse_matrix_list
+
+
+def download(config, size):
+    processed_suite_sparse_matrix_list = read_sparse_matrix_config(config, size)
+    error_matrices = []
+
+    utils.create_datasets_dir()
+    datasets_dir_path = utils.get_datasets_dir_path()
+
+    for full_name, group_name, matrix_name in processed_suite_sparse_matrix_list:
+        print(f"\tChecking matrix: {full_name}")
+
+        matrix_metadata_list = ssgetpy.search(name=matrix_name, limit=3000)
+
+        if not matrix_metadata_list:
+            print(
+                f"\t\t{colors.color_red(full_name)} not found in SuiteSparse, skipped"
+            )
+            error_matrices.append(full_name)
+            continue
+
+        found = False
+        for matrix_metadata in matrix_metadata_list:
+            if matrix_metadata.name == matrix_name:
+                matrix_location = f"{datasets_dir_path}/{group_name}"
+                if os.path.isdir(f"{datasets_dir_path}/{full_name}"):
+                    print(
+                        f"\t\t{colors.color_yellow(full_name)} was already founded, skipped"
+                    )
+                else:
+                    os.makedirs(matrix_location, exist_ok=True)
+                    print(f"\t\tDownloading {colors.color_green(full_name)}")
+                    print(100 * "=")
+                    matrix_metadata.download(destpath=matrix_location, extract=True)
+                    print(100 * "=")
+
+                found = True
+                break
+
+        if not found:
+            print(
+                f"{colors.color_red('matrix_name')} returned, but exact match not found"
+            )
+            error_matrices.append(matrix_name)
+
+    if error_matrices:
+        print()
+        print(
+            f"{colors.color_red('Error')}: The following matrices were not found or mismatched:"
+        )
+        for m in error_matrices:
+            print(f"\t{m}")
+    else:
+        print(f"\n{colors.color_green('All matrices were found successfully.')}")

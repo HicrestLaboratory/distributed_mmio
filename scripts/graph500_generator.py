@@ -93,7 +93,7 @@ def generate(config, size):
     utils.create_datasets_dir()
     unset_env()
 
-    data_dir_path = utils.get_data_dir_path()
+    data_dir_path = utils.get_datasets_dir_path()
 
     print(colors.color_green(f"Graph generated in {data_dir_path}/{file_name}"))
 

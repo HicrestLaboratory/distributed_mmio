@@ -14,9 +14,9 @@ def read_config_file():
 
     with open(config_file_url, "r") as config_file:
         config = yaml.safe_load(config_file)
-        print(f"{colors.color_green('All config')}")
-        print(config)
-        print()
+        # print(f"{colors.color_green('All config')}")
+        # print(config)
+        # print()
 
     return config
 
@@ -36,7 +36,7 @@ def create_datasets_dir():
         print()
 
 
-def get_data_dir_path():
+def get_datasets_dir_path():
     config = read_config_file()
     if not "path" in config:
         raise Exception(

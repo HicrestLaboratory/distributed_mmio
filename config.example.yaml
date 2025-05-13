@@ -1,12 +1,13 @@
-path: dataset
+path: datasets
 small:
   generators:
     graph500:
-      scale: 3
-      edge_factor: 3
+      scale: 4
+      edge_factor: 5
   suite_sparse_matrix_list:
-    - group/mat_name
-  suite_sparse_matrix_ssgetpy_util:
+    - HB/ash219
+    - HB/arc130
+  suite_sparse_matrix_range:
     min_nnzs: 12
     max_nnzs: 43
     limit: 4
@@ -16,8 +17,8 @@ large:
       scale: 9
       edge_factor: 10
   suite_sparse_matrix_list:
-    - group/mat_name
-  suite_sparse_matrix_ssgetpy_util:
+    - Simon/olafu
+  suite_sparse_matrix_range:
     min_nnzs: 12
     max_nnzs: 43
     limit: 4
