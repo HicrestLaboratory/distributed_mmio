@@ -57,7 +57,6 @@ def generate(config, size):
         )
 
     (scale, edge_factor) = read_graph_500_config(config, size)
-    print(scale, edge_factor)
 
     file_name = f"graph500_{scale}_{edge_factor}"
     set_env(file_name)
@@ -81,7 +80,7 @@ def generate(config, size):
         )
         print()
         subprocess.run(
-            ["./graph500_reference_bfs", f"{scale}", f"{edge_factor}"],
+            ["mpirun", "./graph500_reference_bfs", f"{scale}", f"{edge_factor}"],
             cwd=working_dir_path,
             check=True,
         )
