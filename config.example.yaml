@@ -7,6 +7,7 @@ small:
   suite_sparse_matrix_list:
     - HB/ash219
     - HB/arc130
+    - Averous/epb0
   suite_sparse_matrix_range:
     min_nnzs: 12
     max_nnzs: 43

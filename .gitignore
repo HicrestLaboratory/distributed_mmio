@@ -21,3 +21,5 @@ data/*.csv
 mpi_test/
 
 __pycache__
+
+config.yaml
