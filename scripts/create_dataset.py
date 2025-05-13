@@ -1,11 +1,6 @@
 import utils
 import graph500_generator
-import suite_sparse_matrix
-
-# TODO:
-# 2. Look at the include folder
-# 3. Add generator for Matrix Market
-# 4. Writhe the README file
+import suite_sparse_matrix_downloader
 
 
 def get_dataset_size():
@@ -33,8 +28,8 @@ def show_sources_menu():
     print("\nChoose your source of data:\n")
     print("1. generators")
     print("2. suite sparce matrix list")
-    # print("3. suite sparce matrix range")
-    print("3. Exit program\n")
+    print("3. suite sparce matrix range")
+    print("4. Exit program\n")
 
 
 def show_generators_menu():
@@ -49,7 +44,7 @@ def main():
         size = get_dataset_size()
         config = utils.read_config_file()
         show_sources_menu()
-        choice = input("Enter your choice (1-3): ").strip()
+        choice = input("Enter your choice (1-4): ").strip()
         if choice == "1":
             print("generators option has been selected")
             show_generators_menu()
@@ -61,14 +56,15 @@ def main():
             print()
         elif choice == "2":
             print("suite sparce matrix list option has been selected\n")
-            suite_sparse_matrix.download(config, size)
-        # elif choice == "3":
-        #     print("suite sparce matrix range option has been selected")
+            suite_sparse_matrix_downloader.download_list(config, size)
         elif choice == "3":
+            print("suite sparce matrix range option has been selected")
+            suite_sparse_matrix_downloader.download_range(config, size)
+        elif choice == "4":
             print("Exiting.")
             break
         else:
-            print("Invalid choice. Please enter a number from 1 to 3.")
+            print("Invalid choice. Please enter a number from 1 to 4.")
 
 
 if __name__ == "__main__":
