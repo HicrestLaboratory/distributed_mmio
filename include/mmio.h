@@ -327,4 +327,7 @@ inline int mod(int a, int b)
     return r < 0 ? r + b : r;
 }
 
+template<typename IT, typename VT>
+Entry<IT, VT>* sortEntriesByOwner(const Entry<IT, VT>* entries, const int* owner, size_t nentries);
+
 #endif // MM_IO_H

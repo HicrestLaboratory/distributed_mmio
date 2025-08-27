@@ -32,7 +32,8 @@
   template COO_local<IT, VT>* Distr_MMIO_COO_local_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
   template Entry<IT, VT>* Distr_MMIO_COO_local_read_mpi(FILE *f, bool is_bmtx, int comm_size, int myrank, uint32_t* nentries, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
   template int Distr_MMIO_COO_local_write(COO_local<IT, VT>* coo, const char *filename, bool write_as_binary, Matrix_Metadata* meta); \
-  template int Distr_MMIO_COO_local_write_f(COO_local<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta);
+  template int Distr_MMIO_COO_local_write_f(COO_local<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta); \
+  template Entry<IT, VT>* sortEntriesByOwner(const Entry<IT, VT>* entries, const int* owner, size_t nentries);
 
   // template Entry<IT, VT>* mm_parse_file(FILE *f);
   // template int compare_entries_csr(const void *a, const void *b);
@@ -897,6 +898,7 @@ MMIO_EXPLICIT_TEMPLATE_INST(uint64_t, float)
 MMIO_EXPLICIT_TEMPLATE_INST(uint64_t, double)
 MMIO_EXPLICIT_TEMPLATE_INST(int, float)
 MMIO_EXPLICIT_TEMPLATE_INST(int, double)
+MMIO_EXPLICIT_TEMPLATE_INST(uint64_t, uint64_t)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 //                                          Probably to move in a dedicated file
@@ -1464,5 +1466,32 @@ uint64_t edge2globalprocess (Partitioning *self, uint64_t glob_row_id, uint64_t 
     FLUSH_WAIT(0.5);
 #endif
     return(pid);
+}
+
+#include <algorithm>
+#include <vector>
+
+// Sort entries by owner, producing a new sorted vector
+template<typename IT, typename VT>
+Entry<IT, VT>* sortEntriesByOwner(const Entry<IT, VT>* entries, const int* owner, size_t nentries) {
+    // Combine entries and owner into a vector of pairs
+    std::vector<std::pair<int, Entry<IT, VT>>> combined(nentries);
+    for (size_t i = 0; i < nentries; ++i) {
+        combined[i] = { owner[i], entries[i] };
+    }
+
+    // Sort by owner
+    std::sort(combined.begin(), combined.end(),
+              [](const std::pair<int, Entry<IT, VT>>& a, const std::pair<int, Entry<IT, VT>>& b) {
+                  return a.first < b.first;
+              });
+
+    // Allocate new array for sorted entries
+    Entry<IT, VT>* sorted_entries = (Entry<IT, VT>*)malloc(nentries * sizeof(Entry<IT, VT>));
+    for (size_t i = 0; i < nentries; ++i) {
+        sorted_entries[i] = combined[i].second;
+    }
+
+    return sorted_entries;
 }
 
