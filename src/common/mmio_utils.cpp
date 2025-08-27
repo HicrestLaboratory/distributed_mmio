@@ -2,16 +2,16 @@
 #include <string>
 #include <vector>
 
-#include "../include/mmio.h"
-#include "../include/mmio_utils.h"
+#include "../../include/common/mmio.h"
+#include "../../include/common/mmio_utils.h"
 
 #define MMIO_UTILS_EXPLICIT_TEMPLATE_INST(IT, VT) \
-  template void print_csr(CSR_local<IT, VT> *csr, std::string header, FILE* fp); \
-  template void print_csr_as_dense<IT, VT>(CSR_local<IT, VT> *csr, std::string header, FILE* fp); \
-  template void print_coo(COO_local<IT, VT> *coo, std::string header, FILE* fp); \
+  template void print_csr(CSR<IT, VT> *csr, std::string header, FILE* fp); \
+  template void print_csr_as_dense<IT, VT>(CSR<IT, VT> *csr, std::string header, FILE* fp); \
+  template void print_coo(COO<IT, VT> *coo, std::string header, FILE* fp); \
 
 template<typename IT, typename VT>
-void print_csr(CSR_local<IT, VT> *csr, std::string header, FILE* fp) {
+void print_csr(CSR<IT, VT> *csr, std::string header, FILE* fp) {
   if (header != "") {
     fprintf(fp, "%s -- ", header.c_str());
   }
@@ -40,7 +40,7 @@ void print_csr(CSR_local<IT, VT> *csr, std::string header, FILE* fp) {
 }
 
 template<typename IT, typename VT>
-void print_csr_as_dense(CSR_local<IT, VT> *csr, std::string header, FILE* fp) {
+void print_csr_as_dense(CSR<IT, VT> *csr, std::string header, FILE* fp) {
   std::vector<std::vector<VT>> dense_matrix(csr->nrows, std::vector<VT>(csr->ncols, 0.0f));
   for (IT row = 0; row < csr->nrows; ++row) {
     for (IT idx = csr->row_ptr[row]; idx < csr->row_ptr[row + 1]; ++idx) {
@@ -72,7 +72,7 @@ void print_csr_as_dense(CSR_local<IT, VT> *csr, std::string header, FILE* fp) {
 }
 
 template<typename IT, typename VT>
-void print_coo(COO_local<IT, VT> *coo, std::string header, FILE* fp) {
+void print_coo(COO<IT, VT> *coo, std::string header, FILE* fp) {
   if (header != "") {
     fprintf(fp, "%s -- ", header.c_str());
   }
