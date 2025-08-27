@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(distributed_mmio LANGUAGES CXX)
 
+find_package(MPI REQUIRED COMPONENTS CXX)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -14,4 +16,4 @@ target_include_directories(distributed_mmio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/i
 
 add_executable(mtx_to_bmtx ${CMAKE_CURRENT_SOURCE_DIR}/src/mtx_to_bmtx.cpp)
 target_include_directories(mtx_to_bmtx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(mtx_to_bmtx PRIVATE distributed_mmio)
+target_link_libraries(mtx_to_bmtx PRIVATE distributed_mmio MPI::MPI_CXX)
