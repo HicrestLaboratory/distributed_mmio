@@ -63,7 +63,7 @@ target_link_libraries(my_target PRIVATE distributed_mmio)
 ### Non-distributed Matrix Market File CSR Read 
 
 ```c++
-#include "../distributed_mmio/include/mmio.h"
+#include "mmio.h"
 // ...
 CSR_local<uint32_t, float> *csr_matrix = Distr_MMIO_CSR_local_read<uint32_t, float>("path/to/mtx_file", false, &meta);
 COO_local<uint64_t, double> *coo_matrix = Distr_MMIO_COO_local_read<uint64_t, double>("path/to/mtx_file", false, &meta);
