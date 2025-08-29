@@ -2,7 +2,7 @@
 #define __DMMIO_MACROS_H__
 
 #define MatrixMarketBanner "%%MatrixMarket"
-#define MM_MAX_LINE_LENGTH 1025
+#define MM_MAX_LINE_LENGTH 1500
 #define MM_MAX_TOKEN_LENGTH 64
 
 typedef char MM_typecode[6];
@@ -60,13 +60,14 @@ int mm_is_valid(MM_typecode matcode);		/* too complex for a macro */
 
 /********************* Matrix Market error codes ***************************/
 
-#define MM_COULD_NOT_READ_FILE	11
-#define MM_PREMATURE_EOF        12
-#define MM_NOT_MTX				      13
-#define MM_NO_HEADER			      14
-#define MM_UNSUPPORTED_TYPE		  15
-#define MM_LINE_TOO_LONG		    16
-#define MM_COULD_NOT_WRITE_FILE	17
+#define DMMIO_ERR_COULD_NOT_READ_FILE	11
+#define DMMIO_ERR_PREMATURE_EOF         12
+#define DMMIO_ERR_NOT_MTX				13
+#define DMMIO_ERR_NO_HEADER				14
+#define DMMIO_ERR_UNSUPPORTED_TYPE		15
+#define DMMIO_ERR_LINE_TOO_LONG			16
+#define DMMIO_ERR_COULD_NOT_WRITE_FILE	17
+#define DMMIO_ERR_SHOULD_NOT_HAPPEN		18
 
 
 /******************** Matrix Market internal definitions ********************

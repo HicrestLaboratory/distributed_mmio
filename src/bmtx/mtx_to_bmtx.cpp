@@ -32,7 +32,7 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  Matrix_Metadata mtx_meta;
+  DMMIO_Matrix_Metadata mtx_meta;
   mtx_meta.value_bytes = double_val ? 8 : 4;
   CPU_TIMER_INIT(COO_read)
   COO<uint64_t, double> *coo = DMMIO_COO_read<uint64_t, double>(filename.c_str(), false, &mtx_meta);
@@ -50,7 +50,7 @@ int main(int argc, char const *argv[]) {
 
   bool converting_to_bmtx = !is_file_extension_bmtx(filename);
 
-  // print_coo(coo);
+  // DMMIO_print_COO(coo);
   // if (!converting_to_bmtx) exit(0);
 
   CPU_TIMER_INIT(Conversion)

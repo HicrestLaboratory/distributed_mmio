@@ -76,7 +76,8 @@ Explicit template instantiation is currently available for types:
 | int        | float      |
 | int        | double     |
 
-> If you need other, add the declaration at the end of `mmio.cpp` and `distributed_mmio.cpp`. 
+> [!INFO]  
+> If you need other, add the declaration at the end of `mmio.cpp`, `mmio_structs.cpp`, `distributed_mmio.cpp` and `distributed_mmio_structs.cpp`. 
 
 ### Non-distributed Matrix Market File CSR Read (C wrapper)
 

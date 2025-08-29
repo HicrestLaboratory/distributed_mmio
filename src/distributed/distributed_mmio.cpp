@@ -7,17 +7,21 @@
 
 #include "../../include/distributed/distributed_mmio.h"
 
+// TODO deleteme
+#include <ccutils/macros.h>
+
 #define DMMIO_DISTRIBUTED_EXPLICIT_TEMPLATE_INST(IT, VT) \
-  template Entry<IT, VT>* sortEntriesByOwner(const Entry<IT, VT>* entries, const int* owner, size_t nentries);
+  template Entry<IT, VT>* sort_entries_by_owner(const Entry<IT, VT>* entries, const int* owner, size_t nentries); \
+  template Entry<IT, VT>* mm_parse_file_distributed(FILE *f, int rank, int mpi_comm_size, IT &nrows, IT &ncols, IT &nnz, MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta);
 
 
-ProcessGrid * make_process_grid(int row_size, int col_size, int node_size) {
+DMMIO_ProcessGrid * make_process_grid(int row_size, int col_size, int node_size) {
     ASSERT(row_size > 0, "row_size must be > 0");
     ASSERT(col_size > 0, "col_size must be > 0");
     ASSERT(node_size > 0, "node_size must be > 0");
     ASSERT(row_size == col_size, "Currently only square grids are supported");
 
-    ProcessGrid * grid = (ProcessGrid*)malloc(sizeof(ProcessGrid));
+    DMMIO_ProcessGrid * grid = (DMMIO_ProcessGrid*)malloc(sizeof(DMMIO_ProcessGrid));
 
     grid->rsz = row_size;
     grid->csz = col_size;
@@ -68,12 +72,10 @@ ProcessGrid * make_process_grid(int row_size, int col_size, int node_size) {
     return grid;
 }
 
-void print_process_grid(const ProcessGrid *grid, FILE* fp)
-{
-	if (grid->grk==0)
-    {
+void print_process_grid(const DMMIO_ProcessGrid *grid, FILE* fp) {
+	if (grid->grk==0) {
         fprintf(fp, "========================\n");
-        fprintf(fp, " ProcessGrid Details \n");
+        fprintf(fp, " DMMIO_ProcessGrid Details \n");
         fprintf(fp, "========================\n");
         fprintf(fp, "Total processes:\t %d\n", grid->gsz);
         fprintf(fp, "row size:\t %d\n", grid->rsz);
@@ -84,10 +86,8 @@ void print_process_grid(const ProcessGrid *grid, FILE* fp)
     MPI_Barrier(MPI_COMM_WORLD);
 	sleep(1);
 
-    for (int i=0; i<grid->gsz; i++)
-    {
-        if (grid->grk== i)
-        {
+    for (int i=0; i<grid->gsz; i++) {
+        if (grid->grk == i) {
             fprintf(fp, "----- Process %d -----\n", grid->grk);
             fprintf(fp, "Rank:\t %d\n", grid->grk);
             fprintf(fp, "row rank:\t %d\n", grid->rrk);
@@ -110,12 +110,12 @@ void print_process_grid(const ProcessGrid *grid, FILE* fp)
  *
  */
 
-void init_mypart(Partitioning *self) {
-    self->my_part_str = NULL;
+void init_mypart(DMMIO_Partitioning *self) {
+    self->type_str = NULL;
 
-    self->proc_grid = NULL;
+    self->grid = NULL;
 
-    self->operand_type = 'l';
+    self->op = DMMIO_OP_NONE;
 
     self->global_matrix_rows = 0;
     self->global_matrix_cols = 0;
@@ -132,46 +132,46 @@ void init_mypart(Partitioning *self) {
     self->grouprow2localrow = NULL;
 }
 
-void set_mypart_str (Partitioning *self) {
-	switch (self->my_part_type) {
-		case PART_RSLICING:
-			self->my_part_str = "partRslicing";
+void set_mypart_str (DMMIO_Partitioning *self) {
+	switch (self->type) {
+		case DMMIO_PARTITIONING_RSLICING:
+			self->type_str = "partRslicing";
 			break;
-		case PART_BCYCLE:
-			self->my_part_str = "partBcycle";
+		case DMMIO_PARTITIONING_BCYCLE:
+			self->type_str = "partBcycle";
 			break;
-        case PART_NAIVE_CYCLE:
-            self->my_part_str = "partNaiveCycle";
+        case DMMIO_PARTITIONING_NAIVE_CYCLE:
+            self->type_str = "partNaiveCycle";
             break;
-        case PART_BCYCLE_CYCLE:
-            self->my_part_str = "partBcycleCycle";
+        case DMMIO_PARTITIONING_BCYCLE_CYCLE:
+            self->type_str = "partBcycleCycle";
             break;
-        case PART_RSLICING_CYCLE:
-			self->my_part_str = "partRslicingCycle";
+        case DMMIO_PARTITIONING_RSLICING_CYCLE:
+			self->type_str = "partRslicingCycle";
 			break;
 		default:
-			self->my_part_str = "partNaive";
+			self->type_str = "partNaive";
 			break;
     }
 }
 
-void set_mypart_transpose(Partitioning *self, char operand_type) {
-//     ASSERT((operand_type=='l')||(operand_type=='r'), "Error in function %s, operand_type must be 'l' (left) or 'r' (right).", __func__);
-    self->operand_type = (operand_type=='l') ? 'l' : 'r' ;
+void set_mypart_transpose(DMMIO_Partitioning *self, char op) {
+  // ASSERT((op=='l')||(op=='r'), "Error in function %s, op must be 'l' (left) or 'r' (right).", __func__);
+  self->op = (op=='l') ? DMMIO_OP_NONE : DMMIO_OP_TRANSPOSE;
 }
 
-void set_mypart_type (Partitioning *self, PartitioningType partype, char operand_type) {
-    init_mypart(self);
-	self->my_part_type = partype;
+void set_mypart_type (DMMIO_Partitioning *self, DMMIO_PARTITIONING type, char op) {
+  init_mypart(self);
+	self->type = type;
 	set_mypart_str(self);
-    set_mypart_transpose(self, operand_type);
+  set_mypart_transpose(self, op);
 }
 
-void set_mypart_grid (Partitioning *self, ProcessGrid* proc_grid) {
-	self->proc_grid = proc_grid;
+void set_mypart_grid (DMMIO_Partitioning *self, DMMIO_ProcessGrid* grid) {
+	self->grid = grid;
 }
 
-void set_mypart_globaldim (Partitioning *self, uint64_t n, uint64_t m) {
+void set_mypart_globaldim (DMMIO_Partitioning *self, uint64_t n, uint64_t m) {
 	self->global_matrix_rows = n;
 	self->global_matrix_cols = m;
 }
@@ -280,22 +280,22 @@ uint64_t edge2proc_2d_blockcycle(uint64_t i, uint64_t j,
 
 
 uint64_t edge2proc_2d_1d(uint64_t i, uint64_t j,
-                           uint64_t m, uint64_t n,
-                           ProcessGrid * proc_grid, int transpose)
+                         uint64_t m, uint64_t n,
+                         DMMIO_ProcessGrid * grid, int transpose)
 {
-    ASSERT((n % proc_grid->csz == 0), "pc %d does not divide n %lu\n", proc_grid->csz, n); // Process grid must evenly divide matrix dims
-    ASSERT((m % (proc_grid->rsz * proc_grid->nsz) == 0), "pr*pz %d does not divide m %lu\n", proc_grid->nsz * proc_grid->nsz, m);
+    ASSERT((n % grid->csz == 0), "pc %d does not divide n %lu\n", grid->csz, n); // Process grid must evenly divide matrix dims
+    ASSERT((m % (grid->rsz * grid->nsz) == 0), "pr*pz %d does not divide m %lu\n", grid->nsz * grid->nsz, m);
 
-	int rpg = m / proc_grid->rsz;
-    int cpg = n / proc_grid->csz;
+	int rpg = m / grid->rsz;
+    int cpg = n / grid->csz;
 
 
-    int gid = (i / rpg) * proc_grid->csz + j / cpg;
+    int gid = (i / rpg) * grid->csz + j / cpg;
 
-    int rpp = rpg / proc_grid->nsz;
+    int rpp = rpg / grid->nsz;
     int intragroup_id = (i % rpg) / rpp;
 
-    int pid = gid * proc_grid->nsz + intragroup_id;
+    int pid = gid * grid->nsz + intragroup_id;
 
 #if DEBUG_PARTITION
     printf("(%lu, %lu) mapped to %d. rpg:%d, cpg:%d, gid:%d, rpp:%d, ig_id: %d\n",
@@ -303,7 +303,7 @@ uint64_t edge2proc_2d_1d(uint64_t i, uint64_t j,
     FLUSH_WAIT(0.5);
 #endif
 
-    ASSERT((pid < proc_grid->gsz), "pid is %d, must be < %d\n", pid, proc_grid->gsz);
+    ASSERT((pid < grid->gsz), "pid is %d, must be < %d\n", pid, grid->gsz);
 
     return pid;
 }
@@ -326,14 +326,12 @@ uint64_t edge2proc_2d_1d(uint64_t i, uint64_t j,
 // General function for translating global indices to local indices (into header)
 // typedef uint64_t (*GlobalIdx2LocalIdx)(uint64_t globalid, uint64_t globalsize, int nprocs);
 
-uint64_t globalindex2localindex_naive(uint64_t globalid, uint64_t globalsize, int nprocs)
-{
+uint64_t globalindex2localindex_naive(uint64_t globalid, uint64_t globalsize, int nprocs) {
 	int chunk_size = PART_CHUNK_SIZE(globalsize,nprocs);
     return (globalid % chunk_size );
 }
 
-uint64_t globalindex2localindex_cycle(uint64_t globalid, uint64_t globalsize, int nprocs)
-{
+uint64_t globalindex2localindex_cycle(uint64_t globalid, uint64_t globalsize, int nprocs) {
     int chunk_size = PART_CHUNK_SIZE(globalsize,nprocs*nprocs);
 	return ( ((globalid/chunk_size)/nprocs)*chunk_size + (globalid%chunk_size) );
 }
@@ -354,19 +352,19 @@ uint64_t globalindex2localindex_cycle(uint64_t globalid, uint64_t globalsize, in
 
 // Others
 
-void set_mypart_groupdim (Partitioning *self) {
-	ASSERT((self->proc_grid!=NULL), "%s call before self->proc_grid set\n", __func__);
+void set_mypart_groupdim (DMMIO_Partitioning *self) {
+	ASSERT((self->grid!=NULL), "%s call before self->grid set\n", __func__);
 
 	ASSERT(((self->global_matrix_rows!=0)&&(self->global_matrix_cols!=0)), \
 		"%s call before matrix dim are set:\n\tglobal_matrix_rows: %lu\n\tglobal_matrix_cols: %lu\n", \
 		__func__, self->global_matrix_rows, self->global_matrix_cols);
 
-	self->group_matrix_rows = PART_CHUNK_SIZE(self->global_matrix_rows, (self->proc_grid)->rsz);
-	self->group_matrix_cols = PART_CHUNK_SIZE(self->global_matrix_cols, (self->proc_grid)->csz);
+	self->group_matrix_rows = PART_CHUNK_SIZE(self->global_matrix_rows, (self->grid)->rsz);
+	self->group_matrix_cols = PART_CHUNK_SIZE(self->global_matrix_cols, (self->grid)->csz);
 }
 
-void set_mypart_localdim (Partitioning *self) {
-	ASSERT((self->proc_grid!=NULL), "%s call before self->proc_grid set\n", __func__);
+void set_mypart_localdim (DMMIO_Partitioning *self) {
+	ASSERT((self->grid!=NULL), "%s call before self->grid set\n", __func__);
 
 	ASSERT(((self->global_matrix_rows!=0)&&(self->global_matrix_cols!=0)), \
 		"%s call before matrix dim are set:\n\tglobal_matrix_rows: %lu\n\tglobal_matrix_cols: %lu\n", \
@@ -377,19 +375,19 @@ void set_mypart_localdim (Partitioning *self) {
 		__func__, self->group_matrix_rows, self->group_matrix_cols);
 
     // BUG, tmp fix
-//     if (self->operand_type == 'l') {
-//         self->local_matrix_rows = PART_CHUNK_SIZE(self->group_matrix_rows, (self->proc_grid)->pz);
+//     if (self->op == 'l') {
+//         self->local_matrix_rows = PART_CHUNK_SIZE(self->group_matrix_rows, (self->grid)->pz);
 //         self->local_matrix_cols = self->group_matrix_cols;
 //     } else {
 //         self->local_matrix_rows = self->group_matrix_rows;
-//         self->local_matrix_cols = PART_CHUNK_SIZE(self->group_matrix_cols, (self->proc_grid)->pz);
+//         self->local_matrix_cols = PART_CHUNK_SIZE(self->group_matrix_cols, (self->grid)->pz);
 //     }
-    self->local_matrix_rows = PART_CHUNK_SIZE(self->group_matrix_rows, (self->proc_grid)->nsz);
+    self->local_matrix_rows = PART_CHUNK_SIZE(self->group_matrix_rows, (self->grid)->nsz);
     self->local_matrix_cols = self->group_matrix_cols;
 }
 
-void set_mypart_functions (Partitioning *self) {
-	ASSERT((self->proc_grid!=NULL), "%s call before self->proc_grid set\n", __func__);
+void set_mypart_functions (DMMIO_Partitioning *self) {
+	ASSERT((self->grid!=NULL), "%s call before self->grid set\n", __func__);
 
 	ASSERT(((self->global_matrix_rows!=0)&&(self->global_matrix_cols!=0)), \
 		"%s call before matrix dim are set:\n\tglobal_matrix_rows: %lu\n\tglobal_matrix_cols: %lu\n", \
@@ -400,8 +398,8 @@ void set_mypart_functions (Partitioning *self) {
 		__func__, self->group_matrix_rows, self->group_matrix_cols);
 
 
-	switch (self->my_part_type) {
-		case PART_BCYCLE: {
+	switch (self->type) {
+		case DMMIO_PARTITIONING_BCYCLE: {
 			// LOAD RSLICING PARTITIONING
 			self->edge2group = edge2proc_2d_blockcycle;
 			self->edge2nodeprocess = edge2proc_1d_naive;
@@ -413,7 +411,7 @@ void set_mypart_functions (Partitioning *self) {
 			break;
 		}
 
-		case PART_BCYCLE_CYCLE: {
+		case DMMIO_PARTITIONING_BCYCLE_CYCLE: {
 			// LOAD RSLICING PARTITIONING
 			self->edge2group = edge2proc_2d_blockcycle;
 			self->edge2nodeprocess = edge2proc_1d_cycle;
@@ -425,11 +423,11 @@ void set_mypart_functions (Partitioning *self) {
 			break;
 		}
 
-		case PART_RSLICING: {
-			// PART_RSLICING and PART_NAIVE use the same column partitioning
+		case DMMIO_PARTITIONING_RSLICING: {
+			// DMMIO_PARTITIONING_RSLICING and DMMIO_PARTITIONING_NAIVE use the same column partitioning
 			self->edge2nodeprocess = edge2proc_1d_naive;
 
-            if (self->operand_type == 'l') {
+            if (self->op == 'l') {
                 self->edge2group = edge2proc_2d_rowslicing;
                 self->globalcol2groupcol = globalindex2localindex_naive;
                 self->globalrow2grouprow = globalindex2localindex_cycle;
@@ -444,11 +442,11 @@ void set_mypart_functions (Partitioning *self) {
 			break;
 		}
 
-		case PART_RSLICING_CYCLE: {
-			// PART_RSLICING and PART_NAIVE use the same column partitioning
+		case DMMIO_PARTITIONING_RSLICING_CYCLE: {
+			// DMMIO_PARTITIONING_RSLICING and DMMIO_PARTITIONING_NAIVE use the same column partitioning
 			self->edge2nodeprocess = edge2proc_1d_cycle;
 
-            if (self->operand_type == 'l') {
+            if (self->op == 'l') {
                 self->edge2group = edge2proc_2d_rowslicing;
                 self->globalcol2groupcol = globalindex2localindex_naive;
                 self->globalrow2grouprow = globalindex2localindex_cycle;
@@ -458,13 +456,13 @@ void set_mypart_functions (Partitioning *self) {
                 self->globalrow2grouprow = globalindex2localindex_naive;
             }
 
-			self->groupcol2localcol = (self->operand_type=='l') ? globalindex2localindex_naive : globalindex2localindex_cycle ;
-			self->grouprow2localrow = (self->operand_type=='l') ? globalindex2localindex_cycle : globalindex2localindex_naive ;
+			self->groupcol2localcol = (self->op=='l') ? globalindex2localindex_naive : globalindex2localindex_cycle ;
+			self->grouprow2localrow = (self->op=='l') ? globalindex2localindex_cycle : globalindex2localindex_naive ;
 			break;
 		}
 
-		case PART_NAIVE: {
-			// PART_RSLICING and PART_NAIVE use the same column partitioning
+		case DMMIO_PARTITIONING_NAIVE: {
+			// DMMIO_PARTITIONING_RSLICING and DMMIO_PARTITIONING_NAIVE use the same column partitioning
 			self->edge2group = edge2proc_2d_naive;
 			self->edge2nodeprocess = edge2proc_1d_naive;
 			self->globalcol2groupcol = globalindex2localindex_naive;
@@ -475,8 +473,8 @@ void set_mypart_functions (Partitioning *self) {
 			break;
 		}
 
-		case PART_NAIVE_CYCLE: {
-			// PART_RSLICING and PART_NAIVE use the same column partitioning
+		case DMMIO_PARTITIONING_NAIVE_CYCLE: {
+			// DMMIO_PARTITIONING_RSLICING and DMMIO_PARTITIONING_NAIVE use the same column partitioning
 			self->edge2group = edge2proc_2d_naive;
 			self->edge2nodeprocess = edge2proc_1d_cycle;
 			self->globalcol2groupcol = globalindex2localindex_naive;
@@ -489,81 +487,72 @@ void set_mypart_functions (Partitioning *self) {
 	}
 }
 
-void set_mypart (Partitioning *self, PartitioningType partype, ProcessGrid* proc_grid, uint64_t glob_nrows, uint64_t glob_ncols) {
-    set_mypart_type(self, partype);
-    set_mypart_grid(self, proc_grid);
-    set_mypart_globaldim(self, glob_nrows, glob_ncols);
-
-    set_mypart_groupdim(self);
-    set_mypart_functions(self);
-}
-
 // Functions from edge to process
-uint64_t edge2group (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) {
+uint64_t edge2group (DMMIO_Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) {
 #ifndef SKIP_SETPARTFUNC_ASSERT
 	ASSERT((self->grouprow2localrow!=NULL), "%s call before set_mypart_functions\n", __func__);
 #endif
-	return( self->edge2group(glob_row_id, glob_col_id, self->global_matrix_rows, self->global_matrix_cols, (self->proc_grid)->csz, (self->proc_grid)->rsz) );
+	return( self->edge2group(glob_row_id, glob_col_id, self->global_matrix_rows, self->global_matrix_cols, (self->grid)->csz, (self->grid)->rsz) );
 }
 
-uint64_t edge2nodeprocess (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) {
+uint64_t edge2nodeprocess (DMMIO_Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) {
 #ifndef SKIP_SETPARTFUNC_ASSERT
 	ASSERT((self->grouprow2localrow!=NULL), "%s call before set_mypart_functions\n", __func__);
 #endif
-//     uint64_t idxtosplit = (self->operand_type=='l') ? (globalrow2grouprow(self, glob_row_id)) : (globalcol2groupcol(self, glob_col_id)) ;
-//     uint64_t dimtosplit = (self->operand_type=='l') ? self->group_matrix_rows : self->group_matrix_cols ;
+//     uint64_t idxtosplit = (self->op=='l') ? (globalrow2grouprow(self, glob_row_id)) : (globalcol2groupcol(self, glob_col_id)) ;
+//     uint64_t dimtosplit = (self->op=='l') ? self->group_matrix_rows : self->group_matrix_cols ;
     // BUG, tmp fix
     uint64_t idxtosplit = (globalrow2grouprow(self, glob_row_id));
     uint64_t dimtosplit = self->group_matrix_rows;
-	return( self->edge2nodeprocess(idxtosplit, dimtosplit, (self->proc_grid)->nsz) );
+	return( self->edge2nodeprocess(idxtosplit, dimtosplit, (self->grid)->nsz) );
 }
 
 // Function from upper index to inner index
-uint64_t globalcol2groupcol (Partitioning *self, uint64_t glob_col_id) {
+uint64_t globalcol2groupcol (DMMIO_Partitioning *self, uint64_t glob_col_id) {
 #ifndef SKIP_SETPARTFUNC_ASSERT
 	ASSERT((self->grouprow2localrow!=NULL), "%s call before set_mypart_functions\n", __func__);
 #endif
-	return( self->globalcol2groupcol(glob_col_id, self->global_matrix_cols, (self->proc_grid)->csz) );
+	return( self->globalcol2groupcol(glob_col_id, self->global_matrix_cols, (self->grid)->csz) );
 }
 
-uint64_t globalrow2grouprow (Partitioning *self, uint64_t glob_row_id) {
+uint64_t globalrow2grouprow (DMMIO_Partitioning *self, uint64_t glob_row_id) {
 #ifndef SKIP_SETPARTFUNC_ASSERT
 	ASSERT((self->grouprow2localrow!=NULL), "%s call before set_mypart_functions\n", __func__);
 #endif
-	return( self->globalrow2grouprow(glob_row_id, self->global_matrix_rows, (self->proc_grid)->rsz) );
+	return( self->globalrow2grouprow(glob_row_id, self->global_matrix_rows, (self->grid)->rsz) );
 }
 
-uint64_t groupcol2localcol (Partitioning *self, uint64_t grp_col_id) {
+uint64_t groupcol2localcol (DMMIO_Partitioning *self, uint64_t grp_col_id) {
 #ifndef SKIP_SETPARTFUNC_ASSERT
 	ASSERT((self->grouprow2localrow!=NULL), "%s call before set_mypart_functions\n", __func__);
 #endif
-//     int ncolsplit = (self->operand_type=='l') ? 1 : ((self->proc_grid)->pz) ;
+//     int ncolsplit = (self->op=='l') ? 1 : ((self->grid)->pz) ;
     int ncolsplit = 1; // BUG, tmp fix
 	return( self->groupcol2localcol(grp_col_id, self->group_matrix_cols, ncolsplit) );
 }
-uint64_t grouprow2localrow (Partitioning *self, uint64_t grp_row_id) {
+uint64_t grouprow2localrow (DMMIO_Partitioning *self, uint64_t grp_row_id) {
 #ifndef SKIP_SETPARTFUNC_ASSERT
 	ASSERT((self->grouprow2localrow!=NULL), "%s call before set_mypart_functions\n", __func__);
 #endif
-//     int nrowsplit = (self->operand_type=='l') ? ((self->proc_grid)->pz) : 1 ;
-    int nrowsplit = ((self->proc_grid)->nsz); // BUG, tmp fix
+//     int nrowsplit = (self->op=='l') ? ((self->grid)->pz) : 1 ;
+    int nrowsplit = ((self->grid)->nsz); // BUG, tmp fix
 	return( self->grouprow2localrow(grp_row_id, self->group_matrix_rows, nrowsplit) );
 }
 
 // Composed function: from global index to local index and from edge to global rank
-uint64_t globalcol2localcol (Partitioning *self, uint64_t glob_col_id) {
+uint64_t globalcol2localcol (DMMIO_Partitioning *self, uint64_t glob_col_id) {
 	uint64_t grp_col_id = globalcol2groupcol (self, glob_col_id);
 	return(  groupcol2localcol(self, grp_col_id) );
 }
-uint64_t globalrow2localrow (Partitioning *self, uint64_t glob_row_id) {
+uint64_t globalrow2localrow (DMMIO_Partitioning *self, uint64_t glob_row_id) {
 	uint64_t grp_row_id = globalrow2grouprow (self, glob_row_id);
 	return( grouprow2localrow(self, grp_row_id) );
 }
 
-uint64_t edge2globalprocess (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) {
+uint64_t edge2globalprocess (DMMIO_Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) {
 	int gid = edge2group(self, glob_row_id, glob_col_id); // BUG for the row slicing we need to solve the problem of the transpose
 	int intragroup_id = edge2nodeprocess(self, glob_row_id, glob_col_id);
-	int pid = gid * ((self->proc_grid)->nsz) + intragroup_id;
+	int pid = gid * ((self->grid)->nsz) + intragroup_id;
 
 #if DEBUG_PARTITION
     printf("%s: (%lu, %lu) mapped to %d. gid: %d, ig_id: %d\n",
@@ -576,7 +565,7 @@ uint64_t edge2globalprocess (Partitioning *self, uint64_t glob_row_id, uint64_t 
 
 // Sort entries by owner, producing a new sorted vector
 template<typename IT, typename VT>
-Entry<IT, VT>* sortEntriesByOwner(const Entry<IT, VT>* entries, const int* owner, size_t nentries) {
+Entry<IT, VT>* sort_entries_by_owner(const Entry<IT, VT>* entries, const int* owner, size_t nentries) {
     // Combine entries and owner into a vector of pairs
     std::vector<std::pair<int, Entry<IT, VT>>> combined(nentries);
     for (size_t i = 0; i < nentries; ++i) {
@@ -596,6 +585,55 @@ Entry<IT, VT>* sortEntriesByOwner(const Entry<IT, VT>* entries, const int* owner
     }
 
     return sorted_entries;
+}
+
+template<typename IT, typename VT>
+Entry<IT, VT>* mm_parse_file_distributed(
+  FILE *f,
+  int rank, int mpi_comm_size,
+  IT &nrows, IT &ncols, IT &nnz,
+  MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta
+) {
+  ASSERT(is_bmtx, "Distributed read of non-binary MTX files is not supported yet") // TODO implement
+
+  IT nentries = 0, nnz_upperbound = 0;
+  if (f == NULL) {
+    printf("File pointer is NULL\n");
+    return NULL;
+  }
+  int err = mm_parse_header<IT, VT>(f, nrows, ncols, nentries, nnz_upperbound, matcode, is_bmtx, meta);
+  if (err != 0) {
+    printf("Could not parse matrix header (error code: %d).\n", err);
+    fclose(f);
+    return NULL;
+  }
+  
+  long int pos = ftell(f);
+  uint16_t line_size = meta->is_pattern ? (2 * meta->index_bytes) : (2 * meta->index_bytes + meta->value_bytes);
+  nentries = (rank < nnz_upperbound % mpi_comm_size) ? (nnz_upperbound / mpi_comm_size + 1) : (nnz_upperbound / mpi_comm_size);
+  uint32_t to_skip = (rank < nnz_upperbound % mpi_comm_size) ? (nentries * rank) : (nentries * rank + nnz_upperbound % mpi_comm_size);
+  Entry<IT, VT> *entries = (Entry<IT, VT> *)malloc(nentries * sizeof(Entry<IT, VT>));
+
+  if (fseek(f, to_skip*line_size, SEEK_CUR) != 0) {
+    perror("fseek failed");
+    fclose(f);
+    return(NULL);
+  }
+
+  long int new_pos = ftell(f);
+  fprintf(stdout, "[DEBUG at line %d] process %d: %u nentries, %u to skip, %ld is the starting position and %ld is the current position (%u B)\n", __LINE__, rank, nentries, to_skip, pos, new_pos, to_skip*line_size);
+
+  err = mm_read_mtx_crd_data<IT, VT>(f, nentries, entries, matcode, is_bmtx, meta->index_bytes, meta->value_bytes);
+  fclose(f);
+  if (err != 0) {
+    printf("Could not parse matrix data (error code: %d).\n", err);
+    free(entries);
+    return NULL;
+  }
+
+  nnz = mm_duplicate_entries_for_symmetric_matrices(entries, nentries, meta);
+
+  return entries;
 }
 
 DMMIO_DISTRIBUTED_EXPLICIT_TEMPLATE_INST(uint32_t, float)

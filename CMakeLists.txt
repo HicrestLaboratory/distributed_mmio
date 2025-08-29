@@ -21,6 +21,7 @@ FetchContent_MakeAvailable(ccutils)
 ### Distributed MMIO library ###
 add_library(distributed_mmio STATIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common/mmio.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/mmio_structs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common/mmio_utils.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/common/mmio_c_wrapper.cpp)
 target_link_libraries(distributed_mmio PRIVATE ccutils::ccutils)
@@ -39,6 +40,7 @@ if(DMMIO_ENABLE_MPI)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/common)
     target_sources(distributed_mmio PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/distributed/distributed_mmio.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/distributed/distributed_mmio_structs.cpp
     )
     target_link_libraries(distributed_mmio PRIVATE MPI::MPI_C MPI::MPI_CXX ccutils::ccutils_mpi)
     target_link_libraries(mtx_to_bmtx PRIVATE MPI::MPI_C MPI::MPI_CXX ccutils::ccutils_mpi)

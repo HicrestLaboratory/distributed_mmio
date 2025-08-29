@@ -13,30 +13,18 @@
 #include <ccutils/macros.h>
 
 #define DMMIO_EXPLICIT_TEMPLATE_INST(IT, VT) \
-  template int mm_read_mtx_crd_data(FILE *f, int nnz, Entry<IT, VT> *entries, MM_typecode matcode, bool is_bmtx, uint8_t idx_bytes, uint8_t value_bytes); \
-  template CSR<IT, VT>* DMMIO_CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
-  template void DMMIO_CSR_destroy(CSR<IT, VT> **csr); \
-  template COO<IT, VT>* DMMIO_COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
-  template void DMMIO_COO_destroy(COO<IT, VT> **coo); \
-  template void entries_to_local_csr(Entry<IT, VT> *entries, CSR<IT, VT> *csr); \
-  template void entries_to_local_coo(Entry<IT, VT> *entries, COO<IT, VT> *coo); \
-  template int write_binary_matrix_market(FILE *f, COO<IT, VT> *coo, Matrix_Metadata *meta); \
-  template CSR<IT, VT>* DMMIO_CSR_read(const char *filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
-  template CSR<IT, VT>* DMMIO_CSR_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
-  template COO<IT, VT>* DMMIO_COO_read(const char *filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
-  template COO<IT, VT>* DMMIO_COO_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
-  template Entry<IT, VT>* Distr_MMIO_COO_local_read_mpi(FILE *f, bool is_bmtx, int comm_size, int myrank, uint32_t* nentries, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
-  template int DMMIO_COO_write(COO<IT, VT>* coo, const char *filename, bool write_as_binary, Matrix_Metadata* meta); \
-  template int DMMIO_COO_write_f(COO<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta);
-  // template Entry<IT, VT>* mm_parse_file(FILE *f);
-  // template int compare_entries_csr(const void *a, const void *b);
-
+  template int mm_read_mtx_crd_data(FILE *f, int nnz, Entry<IT, VT> *entries, MM_typecode *matcode, bool is_bmtx, uint8_t idx_bytes, uint8_t value_bytes); \
+  template int write_binary_matrix_market(FILE *f, COO<IT, VT> *coo, DMMIO_Matrix_Metadata *meta); \
+  template Entry<IT, VT>* mm_parse_file(FILE *f, IT &nrows, IT &ncols, IT &nnz, MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta); \
+  template int write_matrix_market(FILE *f, COO<IT, VT> *coo, DMMIO_Matrix_Metadata *meta);
+  // template int mm_parse_header(FILE *f, IT &nrows, IT &ncols, IT &nentries, IT &nnz_upperbound, MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta); \
+  
 /**
  * Matrix Market parsing utilities.
  * See http://math.nist.gov/MatrixMarket for details.
  */ 
 
-int mm_read_banner(FILE *f, MM_typecode *matcode, bool is_bmtx, Matrix_Metadata* meta) {
+int mm_read_banner(FILE *f, MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta) {
   char line[MM_MAX_LINE_LENGTH];
   char banner[MM_MAX_TOKEN_LENGTH];
   char mtx[MM_MAX_TOKEN_LENGTH];
@@ -49,7 +37,7 @@ int mm_read_banner(FILE *f, MM_typecode *matcode, bool is_bmtx, Matrix_Metadata*
   mm_clear_typecode(matcode);
 
   if (fgets(line, MM_MAX_LINE_LENGTH, f) == NULL)
-    return MM_PREMATURE_EOF;
+    return DMMIO_ERR_PREMATURE_EOF;
 
   if (meta) {
     meta->mm_header = std::string(line);
@@ -60,30 +48,26 @@ int mm_read_banner(FILE *f, MM_typecode *matcode, bool is_bmtx, Matrix_Metadata*
 
   if (is_bmtx) {
     if (sscanf(line, "%s %s %s %s %s %hhu %hhu", banner, mtx, crd, data_type, storage_scheme, &idx_bytes, &value_bytes) != 7)
-      return MM_PREMATURE_EOF;
+      return DMMIO_ERR_PREMATURE_EOF;
     mm_set_idx_bytes(matcode, idx_bytes);
     mm_set_val_bytes(matcode, value_bytes);    
   } else {
     if (sscanf(line, "%s %s %s %s %s", banner, mtx, crd, data_type, storage_scheme) != 5)
-      return MM_PREMATURE_EOF;
+      return DMMIO_ERR_PREMATURE_EOF;
   }
 
-  for (p = mtx; *p != '\0'; *p = tolower(*p), p++)
-    ; /* convert to lower case */
-  for (p = crd; *p != '\0'; *p = tolower(*p), p++)
-    ;
-  for (p = data_type; *p != '\0'; *p = tolower(*p), p++)
-    ;
-  for (p = storage_scheme; *p != '\0'; *p = tolower(*p), p++)
-    ;
+  for (p = mtx; *p; ++p)            *p = (char)tolower((unsigned char)*p);
+  for (p = crd; *p; ++p)            *p = (char)tolower((unsigned char)*p);
+  for (p = data_type; *p; ++p)      *p = (char)tolower((unsigned char)*p);
+  for (p = storage_scheme; *p; ++p) *p = (char)tolower((unsigned char)*p);
 
   /* check for banner */
   if (strncmp(banner, MatrixMarketBanner, strlen(MatrixMarketBanner)) != 0)
-    return MM_NO_HEADER;
+    return DMMIO_ERR_NO_HEADER;
 
   /* first field should be "mtx" */
   if (strcmp(mtx, MM_MTX_STR) != 0)
-    return MM_UNSUPPORTED_TYPE;
+    return DMMIO_ERR_UNSUPPORTED_TYPE;
   mm_set_matrix(matcode);
 
   /* second field describes whether this is a sparse matrix (in coordinate
@@ -94,7 +78,7 @@ int mm_read_banner(FILE *f, MM_typecode *matcode, bool is_bmtx, Matrix_Metadata*
   else if (strcmp(crd, MM_DENSE_STR) == 0)
     mm_set_dense(matcode);
   else
-    return MM_UNSUPPORTED_TYPE;
+    return DMMIO_ERR_UNSUPPORTED_TYPE;
 
   /* third field */
 
@@ -107,7 +91,7 @@ int mm_read_banner(FILE *f, MM_typecode *matcode, bool is_bmtx, Matrix_Metadata*
   else if (strcmp(data_type, MM_INT_STR) == 0)
     mm_set_integer(matcode);
   else
-    return MM_UNSUPPORTED_TYPE;
+    return DMMIO_ERR_UNSUPPORTED_TYPE;
 
   /* fourth field */
 
@@ -120,18 +104,15 @@ int mm_read_banner(FILE *f, MM_typecode *matcode, bool is_bmtx, Matrix_Metadata*
   else if (strcmp(storage_scheme, MM_SKEW_STR) == 0)
     mm_set_skew(matcode);
   else
-    return MM_UNSUPPORTED_TYPE;
+    return DMMIO_ERR_UNSUPPORTED_TYPE;
 
   // Read and store all header lines (starting with '%')
   if (meta) {
-    long pos = ftell(f);
-    while (fgets(line, sizeof(line), f)) {
-      if (line[0] != '%') {
-        fseek(f, pos, SEEK_SET); // back to start of non-comment line
-        break;
-      }
+    while (true) {
+      long pos = ftell(f);
+      if (!fgets(line, sizeof(line), f)) break;
+      if (line[0] != '%') { fseek(f, pos, SEEK_SET); break; }
       meta->mm_header_body += line;
-      pos = ftell(f);
     }
   }
 
@@ -148,7 +129,7 @@ int mm_read_mtx_crd_size(FILE *f, uint64_t *nrows, uint64_t *ncols, uint64_t *nn
   /* now continue scanning until you reach the end-of-comments */
   do {
     if (fgets(line, MM_MAX_LINE_LENGTH, f) == NULL)
-      return MM_PREMATURE_EOF;
+      return DMMIO_ERR_PREMATURE_EOF;
   } while (line[0] == '%');
 
   /* line[] is either blank or has nrows,ncols, nnz */
@@ -159,7 +140,7 @@ int mm_read_mtx_crd_size(FILE *f, uint64_t *nrows, uint64_t *ncols, uint64_t *nn
     do {
       num_items_read = fscanf(f, "%lu %lu %lu", nrows, ncols, nnz);
       if (num_items_read == EOF)
-        return MM_PREMATURE_EOF;
+        return DMMIO_ERR_PREMATURE_EOF;
     } while (num_items_read != 3);
 
   return 0;
@@ -173,13 +154,13 @@ int mm_read_mtx_crd_size(FILE *f, uint64_t *nrows, uint64_t *ncols, uint64_t *nn
 //   char *buffer = (char *)malloc(buf_size);
 //   if (!buffer) {
 //     fprintf(stderr, "Failed to allocate %zu bytes for ASCII read buffer.\n", buf_size);
-//     return MM_COULD_NOT_READ_FILE;
+//     return DMMIO_ERR_COULD_NOT_READ_FILE;
 //   }
 
 //   size_t read = fread(buffer, 1, buf_size, f);
 //   if (read == 0) {
 //     free(buffer);
-//     return MM_PREMATURE_EOF;
+//     return DMMIO_ERR_PREMATURE_EOF;
 //   }
 
 //   char *ptr = buffer;
@@ -215,12 +196,12 @@ int mm_read_mtx_crd_size(FILE *f, uint64_t *nrows, uint64_t *ncols, uint64_t *nn
 
 //   free(buffer);
 
-//   return (count == nentries) ? 0 : MM_PREMATURE_EOF;
+//   return (count == nentries) ? 0 : DMMIO_ERR_PREMATURE_EOF;
 // }
 
 template<typename IT, typename VT>
-int mm_read_mtx_crd_data(FILE *f, int nentries, Entry<IT, VT> *entries, MM_typecode matcode, bool is_bmtx, uint8_t idx_bytes, uint8_t value_bytes) {
-  bool is_pattern = mm_is_pattern(matcode);
+int mm_read_mtx_crd_data(FILE *f, int nentries, Entry<IT, VT> *entries, MM_typecode *matcode, bool is_bmtx, uint8_t idx_bytes, uint8_t value_bytes) {
+  bool is_pattern = mm_is_pattern((*matcode));
   
   size_t entry_size = 2 * idx_bytes + (is_pattern ? 0 : value_bytes);
   size_t total_size = nentries * entry_size;
@@ -234,11 +215,11 @@ int mm_read_mtx_crd_data(FILE *f, int nentries, Entry<IT, VT> *entries, MM_typec
     char fmt[32];
     int i;
 
-    if (mm_is_real(matcode) || mm_is_integer(matcode)) {
+    if (mm_is_real((*matcode)) || mm_is_integer((*matcode))) {
       snprintf(fmt, 32, "%s %s %s", I_FMT, I_FMT, V_FMT);
       for (i = 0; i < nentries; i++) {
         if (fscanf(f, fmt, &entries[i].row, &entries[i].col, &entries[i].val) != 3)
-          return MM_PREMATURE_EOF;
+          return DMMIO_ERR_PREMATURE_EOF;
         --entries[i].row;
         --entries[i].col;
       }
@@ -246,12 +227,12 @@ int mm_read_mtx_crd_data(FILE *f, int nentries, Entry<IT, VT> *entries, MM_typec
       snprintf(fmt, sizeof(fmt), "%s %s", I_FMT, I_FMT);
       for (i = 0; i < nentries; i++) {
         if (fscanf(f, fmt, &entries[i].row, &entries[i].col) != 2)
-          return MM_PREMATURE_EOF;
+          return DMMIO_ERR_PREMATURE_EOF;
         --entries[i].row;
         --entries[i].col;
         entries[i].val = static_cast<VT>(1.0);
       }
-    } else return MM_UNSUPPORTED_TYPE;
+    } else return DMMIO_ERR_UNSUPPORTED_TYPE;
 
     return 0;
   }
@@ -262,13 +243,13 @@ int mm_read_mtx_crd_data(FILE *f, int nentries, Entry<IT, VT> *entries, MM_typec
   uint8_t *buffer = (uint8_t *)malloc(total_size);
   if (!buffer) {
     fprintf(stderr, "Failed to allocate %zu bytes for input buffer.\n", total_size);
-    return MM_COULD_NOT_READ_FILE;
+    return DMMIO_ERR_COULD_NOT_READ_FILE;
   }
 
   if (fread(buffer, 1, total_size, f) != total_size) {
     fprintf(stderr, "Failed to read expected %zu bytes from file.\n", total_size);
     free(buffer);
-    return MM_PREMATURE_EOF;
+    return DMMIO_ERR_PREMATURE_EOF;
   }
 
   uint8_t *ptr = buffer;
@@ -298,7 +279,7 @@ int mm_read_mtx_crd_data(FILE *f, int nentries, Entry<IT, VT> *entries, MM_typec
         entries[i].val = static_cast<VT>(val_d);
       } else {
         free(buffer);
-        return MM_UNSUPPORTED_TYPE;
+        return DMMIO_ERR_UNSUPPORTED_TYPE;
       }
       ptr += value_bytes;
     } else {
@@ -311,162 +292,26 @@ int mm_read_mtx_crd_data(FILE *f, int nentries, Entry<IT, VT> *entries, MM_typec
 }
 
 
-int required_bytes_index(uint64_t maxval) {
+int required_bytes(uint64_t maxval) {
   if (maxval <= UINT8_MAX)  return 1;
   if (maxval <= UINT16_MAX) return 2;
   if (maxval <= UINT32_MAX) return 4;
   return 8;
 }
 
-/**
- * Structs constructors and destructors
- */ 
-
-// CSR
-
-template<typename IT, typename VT>
-CSR<IT, VT>* DMMIO_CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val) {
-  CSR<IT, VT> *csr = (CSR<IT, VT> *)malloc(sizeof(CSR<IT, VT>));
-  csr->nrows = nrows;
-  csr->ncols = ncols;
-  csr->nnz = nnz;
-  csr->row_ptr = (IT *)malloc((nrows + 1) * sizeof(IT));
-  csr->col_idx = (IT *)malloc(nnz * sizeof(IT));
-  csr->val = NULL;
-  if (alloc_val) {
-    csr->val = (VT *)malloc(nnz * sizeof(VT));
-  }
-  return csr;
-}
-
-template<typename IT, typename VT>
-void DMMIO_CSR_destroy(CSR<IT, VT> **csr) {
-  if (*csr != NULL) {
-    if ((*csr)->row_ptr != NULL) {
-      free((*csr)->row_ptr);
-      (*csr)->row_ptr = NULL;
-    }
-    if ((*csr)->col_idx != NULL) {
-      free((*csr)->col_idx);
-      (*csr)->col_idx = NULL;
-    }
-    if ((*csr)->val != NULL) {
-      free((*csr)->val);
-      (*csr)->val = NULL;
-    }
-    free(*csr);
-    *csr = NULL;
-  }
-}
-
-// COO
-
-template<typename IT, typename VT>
-COO<IT, VT>* DMMIO_COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val) {
-  COO<IT, VT> *coo = (COO<IT, VT> *)malloc(sizeof(COO<IT, VT>));
-  coo->nrows = nrows;
-  coo->ncols = ncols;
-  coo->nnz = nnz;
-  coo->row = (IT *)malloc(nnz * sizeof(IT));
-  coo->col = (IT *)malloc(nnz * sizeof(IT));
-  coo->val = NULL;
-  if (alloc_val) {
-    coo->val = (VT *)malloc(nnz * sizeof(VT));
-  }
-  return coo;
-}
-
-template<typename IT, typename VT>
-void DMMIO_COO_destroy(COO<IT, VT> **coo) {
-  if (*coo != NULL) {
-    if ((*coo)->row != NULL) {
-      free((*coo)->row);
-      (*coo)->row = NULL;
-    }
-    if ((*coo)->col != NULL) {
-      free((*coo)->col);
-      (*coo)->col = NULL;
-    }
-    if ((*coo)->val != NULL) {
-      free((*coo)->val);
-      (*coo)->val = NULL;
-    }
-    free(*coo);
-    *coo = NULL;
-  }
-}
-
-/**
- * Specific parsing functions
- */ 
-
-// CSR
-
-template<typename IT, typename VT>
-int compare_entries_csr(const void *a, const void *b) {
-  Entry<IT, VT> *ea = (Entry<IT, VT> *)a;
-  Entry<IT, VT> *eb = (Entry<IT, VT> *)b;
-  if (ea->row != eb->row)
-    return ea->row - eb->row;
-  return ea->col - eb->col;
-}
-
-template<typename IT, typename VT>
-void entries_to_local_csr(Entry<IT, VT> *entries, CSR<IT, VT> *csr) {
-  qsort(entries, csr->nnz, sizeof(Entry<IT, VT>), compare_entries_csr<IT, VT>);
-
-  for (IT v = 0, i = 0; v < csr->nrows; v++) {
-    csr->row_ptr[v] = i;
-    while (i < csr->nnz && entries[i].row == v) {
-      csr->col_idx[i] = entries[i].col;
-      if (csr->val != NULL) {
-        csr->val[i] = entries[i].val;
-      }
-      ++i;
-    }
-  }
-  csr->row_ptr[csr->nrows] = csr->nnz;
-}
-
-// COO
-
-template<typename IT, typename VT>
-void entries_to_local_coo(Entry<IT, VT> *entries, COO<IT, VT> *coo) {
-  for (IT i = 0; i < coo->nnz; ++i) {
-    coo->row[i] = entries[i].row;
-    coo->col[i] = entries[i].col;
-    if (coo->val != NULL) coo->val[i] = entries[i].val;
-  }
-}
 
 /**
  * Read functions
  */ 
 
-FILE *open_file_r(const char *filename) {
-  FILE *f = fopen(filename, "r");
-  if (!f) {
-    fprintf(stderr, "Could not open file [%s] (read).\n", filename);
-    return NULL;
-  }
-  return f;
-}
 
-FILE *open_file_w(const char *filename) {
-  FILE *f = fopen(filename, "wb");
-  if (!f) {
-    fprintf(stderr, "Could not open file [%s] (write).\n", filename);
-    return NULL;
-  }
-  return f;
-}
 
 bool is_file_extension_bmtx(std::string filename) {
   return filename.size() >= 5 && filename.compare(filename.size() - 5, 5, ".bmtx") == 0;
 }
 
-int write_matrix_market_header(FILE *f, Matrix_Metadata *meta, int index_bytes, uint64_t nrows, uint64_t ncols, uint64_t nentries) {
-  if (!f) return MM_COULD_NOT_WRITE_FILE;
+int write_matrix_market_header(FILE *f, DMMIO_Matrix_Metadata *meta, int index_bytes, uint64_t nrows, uint64_t ncols, uint64_t nentries) {
+  if (!f) return DMMIO_ERR_COULD_NOT_WRITE_FILE;
   
   std::string header = meta->mm_header;
   // Strip trailing spaces
@@ -505,10 +350,10 @@ int write_matrix_market_header(FILE *f, Matrix_Metadata *meta, int index_bytes, 
 }
 
 template<typename IT, typename VT>
-int write_binary_matrix_market(FILE *f, COO<IT, VT> *coo, Matrix_Metadata *meta) {
-  if (!f) return MM_COULD_NOT_WRITE_FILE;
+int write_binary_matrix_market(FILE *f, COO<IT, VT> *coo, DMMIO_Matrix_Metadata *meta) {
+  if (!f) return DMMIO_ERR_COULD_NOT_WRITE_FILE;
 
-  int index_bytes = required_bytes_index(std::max(coo->nrows, coo->ncols));
+  int index_bytes = required_bytes(std::max(coo->nrows, coo->ncols));
 
   IT nentries = coo->nnz;
   if (meta->is_symmetric) { // TODO optimize
@@ -560,8 +405,8 @@ int write_binary_matrix_market(FILE *f, COO<IT, VT> *coo, Matrix_Metadata *meta)
 }
 
 template<typename IT, typename VT>
-int write_matrix_market(FILE *f, COO<IT, VT> *coo, Matrix_Metadata *meta) {
-  if (!f) return MM_COULD_NOT_WRITE_FILE;
+int write_matrix_market(FILE *f, COO<IT, VT> *coo, DMMIO_Matrix_Metadata *meta) {
+  if (!f) return DMMIO_ERR_COULD_NOT_WRITE_FILE;
 
   IT nentries = coo->nnz;
   if (meta->is_symmetric) { // TODO optimize
@@ -593,7 +438,7 @@ int write_matrix_market(FILE *f, COO<IT, VT> *coo, Matrix_Metadata *meta) {
     } else if (meta->value_type == MM_VALUE_TYPE_INTEGER) {
       fprintf(f, "%ld %ld %ld\n", (long)(coo->row[i] + 1), (long)(coo->col[i] + 1), (long)coo->val[i]);
     } else {
-      return MM_UNSUPPORTED_TYPE;
+      return DMMIO_ERR_UNSUPPORTED_TYPE;
     }
   }
 
@@ -601,7 +446,7 @@ int write_matrix_market(FILE *f, COO<IT, VT> *coo, Matrix_Metadata *meta) {
   return 0;
 }
 
-void mm_set_metadata(Matrix_Metadata* meta, MM_typecode *matcode) {
+void mm_set_metadata(DMMIO_Matrix_Metadata* meta, MM_typecode *matcode) {
   if (meta) {
     // Value type
     if (mm_is_real(*matcode)) {
@@ -616,44 +461,50 @@ void mm_set_metadata(Matrix_Metadata* meta, MM_typecode *matcode) {
     }
     // Symmetry
     meta->is_symmetric = mm_is_symmetric(*matcode);
+    meta->is_pattern = mm_is_pattern(*matcode);
   }
 }
 
-template<typename IT, typename VT>
-Entry<IT, VT>* mm_parse_file(FILE *f, IT &nrows, IT &ncols, IT &nnz, MM_typecode *matcode, bool is_bmtx, Matrix_Metadata* meta) {
-  if (f == NULL) return NULL;
+// TODO deleteme
+#include <mpi.h>
 
+template<typename IT, typename VT>
+int mm_parse_header(FILE *f, IT &nrows, IT &ncols, IT &nentries, IT &nnz_upperbound, MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta) {
+  DEBUG_PRINT("HI mm_parse_header %p %p %p\n", f, matcode, meta)
+  MPI_Barrier(MPI_COMM_WORLD);
+  
   int err = mm_read_banner(f, matcode, is_bmtx, meta);
   if (err != 0) {
     fprintf(stderr, "Could not process Matrix Market banner. Error (%d)\n", err);
-    return NULL;
+    return err;
   }
   if (mm_is_complex(*matcode)) {
     fprintf(stderr, "Cannot parse complex-valued matrices.\n");
-    return NULL;
+    return DMMIO_ERR_UNSUPPORTED_TYPE;
   }
   if (mm_is_array(*matcode)) {
     fprintf(stderr, "Cannot parse array matrices.\n");
-    return NULL;
+    return DMMIO_ERR_UNSUPPORTED_TYPE;
   }
   if (mm_is_skew(*matcode)) {
     fprintf(stderr, "Cannot parse skew-symmetric matrices.\n");
-    return NULL;
+    return DMMIO_ERR_UNSUPPORTED_TYPE;
   }
   if (mm_is_hermitian(*matcode)) {
     fprintf(stderr, "Cannot parse hermitian matrices.\n");
-    return NULL;
+    return DMMIO_ERR_UNSUPPORTED_TYPE;
   }
 
-  uint64_t _nrows, _ncols, _nnz, mm_nnz;
-  if (mm_read_mtx_crd_size(f, &_nrows, &_ncols, &mm_nnz) != 0) {
-    fprintf(stderr, "Could not parse matrix size.\n");
-    return NULL;
+  uint64_t _nrows, _ncols, _nentries;
+  err = mm_read_mtx_crd_size(f, &_nrows, &_ncols, &_nentries);
+  if (err != 0) {
+    fprintf(stderr, "Could not parse matrix shape (nrows, ncols, nnz).\n");
+    return err;
   }
 
   uint8_t idx_bytes = 0;
   uint8_t value_bytes = 0;
-  int IT_required_bytes = required_bytes_index(std::max(_nrows, _ncols));
+  int IT_required_bytes = required_bytes(std::max(_nrows, _ncols));
   
   if (is_bmtx) {
     idx_bytes = mm_get_idx_bytes(*matcode);
@@ -662,229 +513,73 @@ Entry<IT, VT>* mm_parse_file(FILE *f, IT &nrows, IT &ncols, IT &nnz, MM_typecode
     if(!(idx_bytes == 1 || idx_bytes == 2 || idx_bytes == 4 || idx_bytes == 8)
        && !(value_bytes == 1 || value_bytes == 2 || value_bytes == 4 || value_bytes == 8)) {
       fprintf(stderr, "BMTX BUG: this should not happen. idx: %hhu bytes, val: %hhu bytes. Please report this.\n", idx_bytes, value_bytes);
-      return NULL;
+      return DMMIO_ERR_SHOULD_NOT_HAPPEN;
     }
     if (idx_bytes < IT_required_bytes) {
       fprintf(stderr, "BMTX BUG: this should not happen. Need at least %d bytes, binary is written using %hhu bytes. Please report this.\n", IT_required_bytes, idx_bytes);
-      return NULL;
+      return DMMIO_ERR_SHOULD_NOT_HAPPEN;
     }
   }
   
   if (sizeof(IT) < (size_t)IT_required_bytes) {
     fprintf(stderr, "Error: Index Type (IT) is too small to represent matrix indices (need at least %d bytes, got %zu bytes).\n", IT_required_bytes, sizeof(IT));
-    return NULL;
+    return DMMIO_ERR_SHOULD_NOT_HAPPEN;
   }
   
-
-  _nnz = mm_is_symmetric(*matcode) ? mm_nnz * 2 : mm_nnz; // For symmetric matrices THIS IS AN UPPER BOUND
+  nnz_upperbound = mm_is_symmetric(*matcode) ? _nentries * 2 : _nentries; // For symmetric matrices THIS IS AN UPPER BOUND
   nrows = static_cast<IT>(_nrows);
   ncols = static_cast<IT>(_ncols);
+  nentries = static_cast<IT>(_nentries);
 
-  Entry<IT, VT> *entries = (Entry<IT, VT> *)malloc(_nnz * sizeof(Entry<IT, VT>));
-  err = mm_read_mtx_crd_data<IT, VT>(f, mm_nnz, entries, *matcode, is_bmtx, idx_bytes, value_bytes);
-  if (err != 0) {
-    printf("Could not parse matrix data (error code: %d).\n", err);
-    free(entries);
-    fclose(f);
-    return NULL;
-  }
-  fclose(f);
+  meta->index_bytes = idx_bytes;
+  meta->value_bytes = value_bytes;
 
-  if (mm_is_symmetric(*matcode)) {
-    _nnz = mm_nnz;
-    // Duplicate the entries for symmetric matrices
-    for (uint64_t i = 0, j = 0; i < mm_nnz; ++i) {
-      if (entries[i].row != entries[i].col) { // Do not duplicate diagonal
-        entries[j + mm_nnz].row = entries[i].col;
-        entries[j + mm_nnz].col = entries[i].row;
-        entries[j + mm_nnz].val = entries[i].val;
-        ++_nnz;
-        ++j;
-      }
-    }
-  }
-
-  nnz = static_cast<IT>(_nnz);
   mm_set_metadata(meta, matcode);
 
-  return entries;
-}
-
-// CSR
-
-template<typename IT, typename VT>
-CSR<IT, VT>* DMMIO_CSR_read(const char *filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta) {
-  return DMMIO_CSR_read_f<IT, VT>(open_file_r(filename), is_file_extension_bmtx(std::string(filename)), expl_val_for_bin_mtx, meta);
-}
-// template CSR<uint64_t, double>* DMMIO_CSR_read(const char *filename, bool expl_val_for_bin_mtx);
-
-template<typename IT, typename VT>
-CSR<IT, VT>* DMMIO_CSR_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta) {
-  IT nrows, ncols, nnz;
-  MM_typecode matcode;
-  Entry<IT, VT> *entries = mm_parse_file<IT, VT>(f, nrows, ncols, nnz, &matcode, is_bmtx, meta);
-  if (entries == NULL) return NULL;
-
-  CSR<IT, VT> *csr = DMMIO_CSR_create<IT, VT>(nrows, ncols, nnz, expl_val_for_bin_mtx || !mm_is_pattern(matcode));
-  entries_to_local_csr<IT, VT>(entries, csr);
-
-  free(entries);
-
-  return csr;
-}
-// template CSR<uint64_t, double>* DMMIO_CSR_read_f(FILE *f, bool expl_val_for_bin_mtx);
-
-// COO
-
-template<typename IT, typename VT>
-COO<IT, VT>* DMMIO_COO_read(const char *filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta) {
-  return DMMIO_COO_read_f<IT, VT>(open_file_r(filename), is_file_extension_bmtx(std::string(filename)), expl_val_for_bin_mtx, meta);
+  return 0;
 }
 
 template<typename IT, typename VT>
-COO<IT, VT>* DMMIO_COO_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta) {
-  IT nrows, ncols, nnz;
-  MM_typecode matcode;
-  Entry<IT, VT> *entries = mm_parse_file<IT, VT>(f, nrows, ncols, nnz, &matcode, is_bmtx, meta);
-  if (entries == NULL) return NULL;
-  
-  COO<IT, VT> *coo = DMMIO_COO_create<IT, VT>(nrows, ncols, nnz, expl_val_for_bin_mtx || !mm_is_pattern(matcode));
-  entries_to_local_coo<IT, VT>(entries, coo);
-  
-  free(entries);
-
-  return coo;
-}
-
-template<typename IT, typename VT>
-Entry<IT, VT>* Distr_MMIO_COO_local_read_mpi(FILE *f, bool is_bmtx, int comm_size, int myrank, uint32_t *nentries, bool expl_val_for_bin_mtx, Matrix_Metadata* meta) {
-  IT nrows, ncols, nnz;
-  MM_typecode matcode;
-
-  int err = mm_read_banner(f, &matcode, is_bmtx, meta);
-  if (err != 0) {
-    fprintf(stderr, "Could not process Matrix Market banner. Error (%d)\n", err);
-    return NULL;
-  }
-  if (mm_is_complex(matcode)) {
-    fprintf(stderr, "Cannot parse complex-valued matrices.\n");
-    return NULL;
-  }
-  if (mm_is_array(matcode)) {
-    fprintf(stderr, "Cannot parse array matrices.\n");
-    return NULL;
-  }
-  if (mm_is_skew(matcode)) {
-    fprintf(stderr, "Cannot parse skew-symmetric matrices.\n");
-    return NULL;
-  }
-  if (mm_is_hermitian(matcode)) {
-    fprintf(stderr, "Cannot parse hermitian matrices.\n");
-    return NULL;
-  }
-
-  uint64_t _nrows, _ncols, _nnz, mm_nnz;
-  if (mm_read_mtx_crd_size(f, &_nrows, &_ncols, &mm_nnz) != 0) {
-    fprintf(stderr, "Could not parse matrix size.\n");
-    return NULL;
-  }
-
-  uint8_t idx_bytes = 0;
-  uint8_t value_bytes = 0;
-  int IT_required_bytes = required_bytes_index(std::max(_nrows, _ncols));
-
-  if (is_bmtx) {
-    idx_bytes = mm_get_idx_bytes(matcode);
-    value_bytes = mm_get_val_bytes(matcode);
-
-    if(!(idx_bytes == 1 || idx_bytes == 2 || idx_bytes == 4 || idx_bytes == 8)
-       && !(value_bytes == 1 || value_bytes == 2 || value_bytes == 4 || value_bytes == 8)) {
-      fprintf(stderr, "BMTX BUG: this should not happen. idx: %hhu bytes, val: %hhu bytes. Please report this.\n", idx_bytes, value_bytes);
-      return NULL;
-    }
-    if (idx_bytes < IT_required_bytes) {
-      fprintf(stderr, "BMTX BUG: this should not happen. Need at least %d bytes, binary is written using %hhu bytes. Please report this.\n", IT_required_bytes, idx_bytes);
-      return NULL;
-    }
-  }
-
-  if (sizeof(IT) < (size_t)IT_required_bytes) {
-    fprintf(stderr, "Error: Index Type (IT) is too small to represent matrix indices (need at least %d bytes, got %zu bytes).\n", IT_required_bytes, sizeof(IT));
-    return NULL;
-  }
-
-
-  _nnz = mm_is_symmetric(matcode) ? mm_nnz * 2 : mm_nnz; // For symmetric matrices THIS IS AN UPPER BOUND
-  nrows = static_cast<IT>(_nrows);
-  ncols = static_cast<IT>(_ncols);
-
-  long int pos = ftell(f);
-  uint16_t line_size = (mm_is_pattern(matcode)) ? (2 * idx_bytes) : (2 * idx_bytes + value_bytes) ;
-  *nentries = (myrank < _nnz % comm_size) ? (_nnz / comm_size + 1) : (_nnz / comm_size) ;
-  uint32_t to_skip = (myrank < _nnz % comm_size) ? (*nentries * myrank) : (*nentries * myrank + _nnz % comm_size ) ;
-  Entry<IT, VT> *entries = (Entry<IT, VT> *)malloc(*nentries * sizeof(Entry<IT, VT>));
-
-  if (fseek(f, to_skip*line_size, SEEK_CUR) != 0) {
-      perror("fseek failed");
-      fclose(f);
-      return(NULL);
-  }
-
-  long int new_pos = ftell(f);
-  fprintf(stdout, "[DEBUG at line %d] process %d: %u nentries, %u to_skip, %ld is the starting position and %ld is the current position (%u B)\n", __LINE__, myrank, *nentries, to_skip, pos, new_pos, to_skip*line_size);
-
-  err = mm_read_mtx_crd_data<IT, VT>(f, *nentries, entries, matcode, is_bmtx, idx_bytes, value_bytes);
-  if (err != 0) {
-    printf("Could not parse matrix data (error code: %d).\n", err);
-    free(entries);
-    fclose(f);
-    return(NULL);
-  }
-  fclose(f);
-
-  if (mm_is_symmetric(matcode)) {
-    _nnz = mm_nnz;
+IT mm_duplicate_entries_for_symmetric_matrices(Entry<IT, VT>* entries, IT nentries, DMMIO_Matrix_Metadata* meta) {
+  IT nnz = nentries;
+  if (meta->is_symmetric) {
     // Duplicate the entries for symmetric matrices
-    for (uint64_t i = 0, j = 0; i < mm_nnz; ++i) {
+    for (uint64_t i = 0, j = 0; i < nentries; ++i) {
       if (entries[i].row != entries[i].col) { // Do not duplicate diagonal
-        entries[j + mm_nnz].row = entries[i].col;
-        entries[j + mm_nnz].col = entries[i].row;
-        entries[j + mm_nnz].val = entries[i].val;
-        ++_nnz;
+        entries[j + nentries].row = entries[i].col;
+        entries[j + nentries].col = entries[i].row;
+        entries[j + nentries].val = entries[i].val;
+        ++nnz;
         ++j;
       }
     }
   }
+  return nnz;
+}
 
-  nnz = static_cast<IT>(_nnz);
-  mm_set_metadata(meta, &matcode);
+template<typename IT, typename VT>
+Entry<IT, VT>* mm_parse_file(FILE *f, IT &nrows, IT &ncols, IT &nnz, MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta) {
+  IT nentries = 0, nnz_upperbound = 0;
+  int err = mm_parse_header<IT, VT>(f, nrows, ncols, nentries, nnz_upperbound, matcode, is_bmtx, meta);
+  if (f == NULL || err != 0) {
+    printf("Could not parse matrix header (error code: %d).\n", err);
+    fclose(f);
+    return NULL;
+  }
+
+  Entry<IT, VT> *entries = (Entry<IT, VT> *)malloc(nentries * sizeof(Entry<IT, VT>));
+  err = mm_read_mtx_crd_data<IT, VT>(f, nentries, entries, matcode, is_bmtx, meta->index_bytes, meta->value_bytes);
+  fclose(f);
+  if (err != 0) {
+    printf("Could not parse matrix data (error code: %d).\n", err);
+    free(entries);
+    return NULL;
+  }
+
+  nnz = mm_duplicate_entries_for_symmetric_matrices(entries, nentries, meta);
 
   return entries;
 }
-
-template<typename IT, typename VT>
-int DMMIO_COO_write(COO<IT, VT>* coo, const char *filename, bool write_as_binary, Matrix_Metadata* meta) {
-  return DMMIO_COO_write_f(coo, open_file_w(filename), write_as_binary, meta);
-}
-
-template<typename IT, typename VT>
-int DMMIO_COO_write_f(COO<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta) {
-  if (meta->mm_header.empty()) {
-    meta->mm_header = "%%MatrixMarket matrix coordinate";
-
-    switch (meta->value_type) {
-      case MM_VALUE_TYPE_REAL:    { meta->mm_header += std::string(MM_REAL_STR);    break; }
-      case MM_VALUE_TYPE_INTEGER: { meta->mm_header += std::string(MM_INT_STR);     break; }
-      case MM_VALUE_TYPE_PATTERN: { meta->mm_header += std::string(MM_PATTERN_STR); break; }
-      default:                  { fprintf(stderr, "BUG: MM_VALUE_TYPE not recognized\n"); return 100; }
-    }
-
-    meta->mm_header += meta->is_symmetric ? "symmetric" : "general";
-  }
-  
-  return write_as_binary ? write_binary_matrix_market(f, coo, meta) : write_matrix_market(f, coo, meta);
-}
-
 
 DMMIO_EXPLICIT_TEMPLATE_INST(uint32_t, float)
 DMMIO_EXPLICIT_TEMPLATE_INST(uint32_t, double)
