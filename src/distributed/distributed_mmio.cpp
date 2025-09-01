@@ -12,7 +12,7 @@
 
 #define DMMIO_DISTRIBUTED_EXPLICIT_TEMPLATE_INST(IT, VT) \
   template Entry<IT, VT>* sort_entries_by_owner(const Entry<IT, VT>* entries, const int* owner, size_t nentries); \
-  template Entry<IT, VT>* mm_parse_file_distributed(FILE *f, int rank, int mpi_comm_size, IT &nrows, IT &ncols, IT &nnz, MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta);
+  template Entry<IT, VT>* mm_parse_file_distributed(FILE *f, int rank, int mpi_comm_size, IT &nrows, IT &ncols, IT &local_nnz, MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta);
 
 
 DMMIO_ProcessGrid * make_process_grid(int row_size, int col_size, int node_size) {
@@ -591,7 +591,7 @@ template<typename IT, typename VT>
 Entry<IT, VT>* mm_parse_file_distributed(
   FILE *f,
   int rank, int mpi_comm_size,
-  IT &nrows, IT &ncols, IT &nnz,
+  IT &nrows, IT &ncols, IT &local_nnz,
   MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta
 ) {
   ASSERT(is_bmtx, "Distributed read of non-binary MTX files is not supported yet") // TODO implement
@@ -631,7 +631,7 @@ Entry<IT, VT>* mm_parse_file_distributed(
     return NULL;
   }
 
-  nnz = mm_duplicate_entries_for_symmetric_matrices(entries, nentries, meta);
+  local_nnz = mm_duplicate_entries_for_symmetric_matrices(entries, nentries, meta);
 
   return entries;
 }

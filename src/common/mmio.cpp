@@ -567,7 +567,7 @@ Entry<IT, VT>* mm_parse_file(FILE *f, IT &nrows, IT &ncols, IT &nnz, MM_typecode
     return NULL;
   }
 
-  Entry<IT, VT> *entries = (Entry<IT, VT> *)malloc(nentries * sizeof(Entry<IT, VT>));
+  Entry<IT, VT> *entries = (Entry<IT, VT> *)malloc((meta->is_symmetric ? 2 : 1) * nentries * sizeof(Entry<IT, VT>));
   err = mm_read_mtx_crd_data<IT, VT>(f, nentries, entries, matcode, is_bmtx, meta->index_bytes, meta->value_bytes);
   fclose(f);
   if (err != 0) {

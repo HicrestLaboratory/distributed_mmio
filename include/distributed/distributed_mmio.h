@@ -144,7 +144,7 @@ template<typename IT, typename VT>
 Entry<IT, VT>* sort_entries_by_owner(const Entry<IT, VT>* entries, const int* owner, size_t nentries);
 
 template<typename IT, typename VT>
-Entry<IT, VT>* mm_parse_file_distributed(FILE *f, int rank, int mpi_comm_size, IT &nrows, IT &ncols, IT &nnz, MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta);
+Entry<IT, VT>* mm_parse_file_distributed(FILE *f, int rank, int mpi_comm_size, IT &nrows, IT &ncols, IT &local_nnz, MM_typecode *matcode, bool is_bmtx, DMMIO_Matrix_Metadata* meta);
 
 template<typename IT, typename VT>
 DCOO<IT, VT>* DMMIO_DCOO_read(
