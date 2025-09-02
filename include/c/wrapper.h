@@ -1,5 +1,5 @@
-#ifndef __DMMIO_C_WRAPPER_H__
-#define __DMMIO_C_WRAPPER_H__
+#ifndef __MMIO_C_WRAPPER_H__
+#define __MMIO_C_WRAPPER_H__
 
 #include <stdbool.h>
 #include <stdint.h> // For uint32_t, uint64_t
@@ -131,4 +131,4 @@ void mmio_destroy_coo_u64_f64(mmio_coo_u64_f64_t* matrix);
 }
 #endif
 
-#endif // __DMMIO_C_WRAPPER_H__
+#endif // __MMIO_C_WRAPPER_H__

@@ -1,5 +1,5 @@
-#ifndef __DMMIO_MACROS_H__
-#define __DMMIO_MACROS_H__
+#ifndef __MMIO_MACROS_H__
+#define __MMIO_MACROS_H__
 
 #define MatrixMarketBanner "%%MatrixMarket"
 #define MM_MAX_LINE_LENGTH 1500
@@ -47,7 +47,7 @@ int mm_is_valid(MM_typecode matcode);		/* too complex for a macro */
 
 #define mm_set_symmetric(typecode)  ((*typecode)[3]='S')
 #define mm_set_general(typecode)    ((*typecode)[3]='G')
-#define mm_set_skew(typecode)	      ((*typecode)[3]='K')
+#define mm_set_skew(typecode)	    ((*typecode)[3]='K')
 #define mm_set_hermitian(typecode)  ((*typecode)[3]='H')
 
 #define mm_set_idx_bytes(typecode, bytes)  ((*typecode)[4]=(char)((uint8_t)(bytes)))
@@ -60,14 +60,14 @@ int mm_is_valid(MM_typecode matcode);		/* too complex for a macro */
 
 /********************* Matrix Market error codes ***************************/
 
-#define DMMIO_ERR_COULD_NOT_READ_FILE	11
-#define DMMIO_ERR_PREMATURE_EOF         12
-#define DMMIO_ERR_NOT_MTX				13
-#define DMMIO_ERR_NO_HEADER				14
-#define DMMIO_ERR_UNSUPPORTED_TYPE		15
-#define DMMIO_ERR_LINE_TOO_LONG			16
-#define DMMIO_ERR_COULD_NOT_WRITE_FILE	17
-#define DMMIO_ERR_SHOULD_NOT_HAPPEN		18
+#define MMIO_ERR_COULD_NOT_READ_FILE	11
+#define MMIO_ERR_PREMATURE_EOF          12
+#define MMIO_ERR_NOT_MTX				13
+#define MMIO_ERR_NO_HEADER				14
+#define MMIO_ERR_UNSUPPORTED_TYPE		15
+#define MMIO_ERR_LINE_TOO_LONG			16
+#define MMIO_ERR_COULD_NOT_WRITE_FILE	17
+#define MMIO_ERR_SHOULD_NOT_HAPPEN		18
 
 
 /******************** Matrix Market internal definitions ********************
@@ -79,26 +79,26 @@ int mm_is_valid(MM_typecode matcode);		/* too complex for a macro */
 
    string position:	 [0]        [1]			[2]         [3]
 
-   Matrix typecode: M(atrix)  C(oord)		R(eal)   	  G(eneral)
-						        A(array)	C(omplex) H(ermitian)
-										P(attern) S(ymmetric)
-								    I(nteger)	K(kew)
+   Matrix typecode: M(atrix)  	C(oord)		R(eal)   	G(eneral)
+						        A(array)	C(omplex) 	H(ermitian)
+										    P(attern) 	S(ymmetric)
+								            I(nteger) 	K(kew)
 
  ***********************************************************************/
 
-#define MM_MTX_STR		        "matrix"
-#define MM_ARRAY_STR	        "array"
-#define MM_DENSE_STR	        "array"
+#define MM_MTX_STR		      "matrix"
+#define MM_ARRAY_STR	      "array"
+#define MM_DENSE_STR	      "array"
 #define MM_COORDINATE_STR     "coordinate" 
-#define MM_SPARSE_STR	        "coordinate"
+#define MM_SPARSE_STR	      "coordinate"
 #define MM_COMPLEX_STR	      "complex"
-#define MM_REAL_STR		        "real"
-#define MM_INT_STR		        "integer"
+#define MM_REAL_STR		      "real"
+#define MM_INT_STR		      "integer"
 #define MM_GENERAL_STR        "general"
-#define MM_SYMM_STR		        "symmetric"
-#define MM_HERM_STR		        "hermitian"
-#define MM_SKEW_STR		        "skew-symmetric"
+#define MM_SYMM_STR		      "symmetric"
+#define MM_HERM_STR		      "hermitian"
+#define MM_SKEW_STR		      "skew-symmetric"
 #define MM_PATTERN_STR        "pattern"
 
 
-#endif // __DMMIO_MACROS_H__
+#endif // __MMIO_MACROS_H__

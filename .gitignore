@@ -1,5 +1,4 @@
 .vscode/
 build/
-
-*.mtx
-*.bmtx
+examples/mmio/build/
+examples/dmmio/build/

@@ -1,0 +1,105 @@
+#ifndef __MMIO_H__
+#define __MMIO_H__
+
+#include <stdint.h>
+#include <stdio.h>
+#include <string>
+
+#include "macros.h"
+
+namespace mmio {
+
+  /********************* Enums and Data Structures ***************************/
+
+  enum ValueType {
+    Real,
+    Integer,
+    Pattern
+  };
+
+  /// @brief IMPORTANT: initialize with "new"
+  struct Matrix_Metadata {
+    // Data type of matrix values
+    ValueType value_type;
+    // Size in bytes of each matrix value
+    uint8_t value_bytes;
+    // Size in bytes of each matrix index
+    uint8_t index_bytes;
+    // First line of the header
+    std::string mm_header;
+    // Following header lines
+    std::string mm_header_body;
+    bool is_symmetric;
+    bool is_pattern;
+  };
+
+  template<typename IT, typename VT>
+  struct COO {
+    IT nrows;
+    IT ncols;
+    IT nnz;
+    IT *row;
+    IT *col;
+    VT *val;
+  };
+
+  template<typename IT, typename VT>
+  struct CSR {
+    IT 	nrows;
+    IT 	ncols;
+    IT 	nnz;
+    IT 	*row_ptr;
+    IT 	*col_idx;
+    VT 	*val;
+  };
+
+  template<typename IT, typename VT>
+  struct CSC {
+    IT 	nrows;
+    IT 	ncols;
+    IT 	nnz;
+    IT 	*col_ptr;
+    IT 	*row_idx;
+    VT 	*val;
+  };
+
+  /********************* Data Structures Functions ***************************/
+
+  /** COO **/
+  template<typename IT, typename VT>
+  COO<IT, VT>* COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val);
+
+  template<typename IT, typename VT>
+  void COO_destroy(COO<IT, VT>** coo);
+
+  template<typename IT, typename VT>
+  COO<IT, VT>* COO_read(const char *filename, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL);
+
+  template<typename IT, typename VT>
+  COO<IT, VT>* COO_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL);
+
+  template<typename IT, typename VT>
+  int COO_write(COO<IT, VT>* coo, const char *filename, bool write_as_binary, Matrix_Metadata* meta);
+
+  template<typename IT, typename VT>
+  int COO_write_f(COO<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta);
+
+  /** CSR **/
+  template<typename IT, typename VT>
+  CSR<IT, VT>* CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val);
+
+  template<typename IT, typename VT>
+  void CSR_destroy(CSR<IT, VT>** csr);
+
+  template<typename IT, typename VT>
+  CSR<IT, VT>* CSR_read(const char *filename, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL);
+
+  template<typename IT, typename VT>
+  CSR<IT, VT>* CSR_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL);
+
+  /** CSC **/
+  // TODO
+
+} // namespace mmio
+
+#endif // __MMIO_H__

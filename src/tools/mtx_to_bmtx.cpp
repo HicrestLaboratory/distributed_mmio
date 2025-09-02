@@ -5,8 +5,8 @@
 #include <ccutils/colors.h>
 #include <ccutils/timers.h>
 
-#include "../../include/common/mmio.h"
-#include "../../include/common/mmio_utils.h" // FIXME
+#include <mmio/mmio.h>
+#include <mmio/io.h>
 
 int main(int argc, char const *argv[]) {
   if (argc < 2) {
@@ -32,10 +32,12 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  DMMIO_Matrix_Metadata mtx_meta;
+  using namespace mmio;
+
+  Matrix_Metadata mtx_meta;
   mtx_meta.value_bytes = double_val ? 8 : 4;
   CPU_TIMER_INIT(COO_read)
-  COO<uint64_t, double> *coo = DMMIO_COO_read<uint64_t, double>(filename.c_str(), false, &mtx_meta);
+  COO<uint64_t, double> *coo = COO_read<uint64_t, double>(filename.c_str(), false, &mtx_meta);
   CPU_TIMER_CLOSE(COO_read)
   if (coo == NULL) {
     fprintf(stderr, "Something went wrong\n");
@@ -48,7 +50,7 @@ int main(int argc, char const *argv[]) {
     out_filename = out_filename.substr(0, last_dot);
   }
 
-  bool converting_to_bmtx = !is_file_extension_bmtx(filename);
+  bool converting_to_bmtx = !mmio::io::mm_is_file_extension_bmtx(filename);
 
   // DMMIO_print_COO(coo);
   // if (!converting_to_bmtx) exit(0);
@@ -57,17 +59,17 @@ int main(int argc, char const *argv[]) {
   if (converting_to_bmtx) {
     printf("Converting MTX file to BMTX...\n");
     out_filename += ".bmtx";
-    DMMIO_COO_write(coo, out_filename.c_str(), true, &mtx_meta);
+    COO_write(coo, out_filename.c_str(), true, &mtx_meta);
     printf("BMTX file written to %s\n", out_filename.c_str());
   } else {
     printf("Converting BMTX file to MTX...\n");
     out_filename += ".mtx";
-    DMMIO_COO_write(coo, out_filename.c_str(), false, &mtx_meta);
+    COO_write(coo, out_filename.c_str(), false, &mtx_meta);
     printf("MTX file written to %s\n", out_filename.c_str());
   }
   CPU_TIMER_CLOSE(Conversion)
 
-  DMMIO_COO_destroy(&coo);
+  COO_destroy(&coo);
 
   // Compare file sizes of input and output files
   FILE *f_in = fopen(filename.c_str(), "rb");

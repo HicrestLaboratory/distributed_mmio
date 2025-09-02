@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
-project(distributed_mmio LANGUAGES CXX)
+project(distributed_mmio LANGUAGES C CXX)
 
 option(DMMIO_ENABLE_MPI "Enable MPI for distributed reading" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/common)
 
 ### CCUTILS dependency ###
 set(CCUTILS_ENABLE_MPI  ON  CACHE BOOL "")
@@ -19,29 +18,35 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(ccutils)
 
 ### Distributed MMIO library ###
-add_library(distributed_mmio STATIC 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/mmio.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/mmio_structs.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/mmio_utils.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/common/mmio_c_wrapper.cpp)
-target_link_libraries(distributed_mmio PRIVATE ccutils::ccutils)
+add_library(dmmio STATIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mmio/mmio.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mmio/io.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mmio/utils.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/c/wrapper.cpp)
+target_include_directories(dmmio PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(dmmio PRIVATE ccutils::ccutils)
 
 ### MTX to BMTX converter ###
-option(DMMIO_TOOLS "Build mtx_to_bmtx tool" ON)
+option(DMMIO_TOOLS "Build mtx_to_bmtx tool" OFF)
 if(DMMIO_TOOLS)
-    add_executable(mtx_to_bmtx ${CMAKE_CURRENT_SOURCE_DIR}/src/bmtx/mtx_to_bmtx.cpp)
-    target_link_libraries(mtx_to_bmtx PRIVATE distributed_mmio ccutils::ccutils)
+    add_executable(mtx_to_bmtx ${CMAKE_CURRENT_SOURCE_DIR}/src/tools/mtx_to_bmtx.cpp)
+    target_link_libraries(mtx_to_bmtx PRIVATE dmmio ccutils::ccutils)
 endif()
 
 # ---------------- MPI (Optional) ----------------
 if(DMMIO_ENABLE_MPI)
     message("DMMIO: Enabling MPI module")
-    find_package(MPI REQUIRED COMPONENTS CXX)  # Provides MPI::MPI_C and MPI::MPI_CXX
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/common)
-    target_sources(distributed_mmio PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/distributed/distributed_mmio.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/distributed/distributed_mmio_structs.cpp
+    find_package(MPI REQUIRED COMPONENTS C CXX)  # Provides MPI::MPI_C and MPI::MPI_CXX
+    target_sources(dmmio PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/dmmio/dmmio.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/dmmio/dio.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/dmmio/partitioning.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/dmmio/dutils.cpp
     )
-    target_link_libraries(distributed_mmio PRIVATE MPI::MPI_C MPI::MPI_CXX ccutils::ccutils_mpi)
-    target_link_libraries(mtx_to_bmtx PRIVATE MPI::MPI_C MPI::MPI_CXX ccutils::ccutils_mpi)
+    target_link_libraries(dmmio PRIVATE MPI::MPI_C MPI::MPI_CXX ccutils::ccutils_mpi)
+    if(DMMIO_TOOLS)
+        target_link_libraries(mtx_to_bmtx PRIVATE MPI::MPI_C MPI::MPI_CXX ccutils::ccutils_mpi)
+    endif()
 endif()
