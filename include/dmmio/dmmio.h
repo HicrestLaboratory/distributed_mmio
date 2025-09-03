@@ -73,8 +73,8 @@ namespace dmmio {
   /** Distributed COO container */
   template <typename IT, typename VT>
   struct DCOO {
-    Partitioning* partitioning;
-    mmio::COO<IT, VT>* coo;
+    Partitioning *partitioning;
+    mmio::COO<IT, VT> *coo;
   };
 
   // -------- Public API functions --------

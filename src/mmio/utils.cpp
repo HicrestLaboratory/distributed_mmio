@@ -54,7 +54,7 @@ namespace mmio::utils {
   template<typename VT>
   void print_val(FILE* fp, VT val) {
     if (val == static_cast<VT>(0)) {
-      fprintf(fp, "   - "); // placeholder for zero
+      fprintf(fp, "    -  "); // placeholder for zero
     } else {
       if constexpr (std::is_floating_point<VT>::value) {
         fprintf(fp, "%6.1f ", val);
@@ -172,10 +172,10 @@ namespace mmio::utils {
 
 } // namespace mmio::utils
 
-
-MMIO_UTILS_EXPLICIT_TEMPLATE_INST(int, float)
-MMIO_UTILS_EXPLICIT_TEMPLATE_INST(int, double)
 MMIO_UTILS_EXPLICIT_TEMPLATE_INST(uint32_t, float)
 MMIO_UTILS_EXPLICIT_TEMPLATE_INST(uint32_t, double)
 MMIO_UTILS_EXPLICIT_TEMPLATE_INST(uint64_t, float)
 MMIO_UTILS_EXPLICIT_TEMPLATE_INST(uint64_t, double)
+MMIO_UTILS_EXPLICIT_TEMPLATE_INST(int, float)
+MMIO_UTILS_EXPLICIT_TEMPLATE_INST(int, double)
+MMIO_UTILS_EXPLICIT_TEMPLATE_INST(uint64_t, uint64_t)

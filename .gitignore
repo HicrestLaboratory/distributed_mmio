@@ -1,4 +1,9 @@
 .vscode/
 build/
+
 examples/mmio/build/
 examples/dmmio/build/
+
+tests/test_matrices
+tests/results
+tests/SbatchMan
