@@ -1,5 +1,8 @@
 .vscode/
+.kdev4/
 build/
+
+distributed_mmio.kdev4
 
 examples/mmio/build/
 examples/dmmio/build/

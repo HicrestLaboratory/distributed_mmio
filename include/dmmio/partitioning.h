@@ -32,64 +32,82 @@ namespace dmmio::partitioning {
   );
 
   // Accessors
-  uint64_t edge2group(Partitioning* self, uint64_t glob_row_id, uint64_t glob_col_id);
-  uint64_t edge2node(Partitioning* self, uint64_t glob_row_id, uint64_t glob_col_id);
+  namespace edgeowner {
+    namespace base {
+      namespace d1 {
+        uint64_t naive( // Previous name: edge2proc_1d_naive
+          uint64_t idx,
+          uint64_t dimtosplit,
+          int nprocs
+        );
 
-  uint64_t globalcol2groupcol(Partitioning* self, uint64_t glob_col_id);
-  uint64_t globalrow2grouprow(Partitioning* self, uint64_t glob_row_id);
-  uint64_t groupcol2localcol(Partitioning* self, uint64_t grp_col_id);
-  uint64_t grouprow2localrow(Partitioning* self, uint64_t grp_row_id);
+        uint64_t cycle( // Previous name: edge2proc_1d_cycle
+          uint64_t idx,
+          uint64_t dimtosplit,
+          int nprocs
+        );
+      }
 
-  uint64_t globalcol2localcol(Partitioning* self, uint64_t glob_col_id);
-  uint64_t globalrow2localrow(Partitioning* self, uint64_t glob_row_id);
+      namespace d2 {
+        uint64_t naive( // Previous name: edge2proc_2d_naive
+          uint64_t i, uint64_t j,
+          uint64_t nrows, uint64_t ncols,
+          int procs_per_row, int procs_per_col
+        );
 
-  uint64_t edge2globalprocess(Partitioning* self, uint64_t glob_row_id, uint64_t glob_col_id);
+        uint64_t rowslicing( // Previous name: edge2proc_2d_rowslicing
+          uint64_t i, uint64_t j,
+          uint64_t nrows, uint64_t ncols,
+          int procs_per_row, int procs_per_col
+        );
 
-  uint64_t edge2proc_1d_naive(
-    uint64_t idx,
-    uint64_t dimtosplit,
-    int nprocs
-  );
+        uint64_t rowslicing_transpose( // Previous name: edge2proc_2d_rowslicing_transpose
+          uint64_t i, uint64_t j,
+          uint64_t nrows, uint64_t ncols,
+          int procs_per_row, int procs_per_col
+        );
 
-  uint64_t edge2proc_1d_cycle(
-    uint64_t idx,
-    uint64_t dimtosplit,
-    int nprocs
-  );
+        uint64_t blockcycle( // Previous name: edge2proc_2d_blockcycle
+          uint64_t i, uint64_t j,
+          uint64_t nrows, uint64_t ncols,
+          int procs_per_row, int procs_per_col
+        );
+      }
 
-  uint64_t edge2proc_2d_naive(
-    uint64_t i, uint64_t j,
-    uint64_t nrows, uint64_t ncols,
-    int procs_per_row, int procs_per_col
-  );
+      uint64_t edge2proc_2d_1d(
+        uint64_t i, uint64_t j,
+        uint64_t m, uint64_t n,
+        ProcessGrid * grid, int transpose
+      );
+    }
 
-  uint64_t edge2proc_2d_rowslicing(
-    uint64_t i, uint64_t j,
-    uint64_t nrows, uint64_t ncols,
-    int procs_per_row, int procs_per_col
-  );
+    uint64_t groupowner(Partitioning* self, uint64_t glob_row_id, uint64_t glob_col_id); // Previous name: edge2group
+    uint64_t internodeidowner(Partitioning* self, uint64_t glob_row_id, uint64_t glob_col_id); // Previous name: edge2node
 
-  uint64_t edge2proc_2d_rowslicing_transpose(
-    uint64_t i, uint64_t j,
-    uint64_t nrows, uint64_t ncols,
-    int procs_per_row, int procs_per_col
-  );
+    uint64_t edge2owner(Partitioning* self, uint64_t glob_row_id, uint64_t glob_col_id); // Previous name: edge2globalprocess
+  }
 
-  uint64_t edge2proc_2d_blockcycle(
-    uint64_t i, uint64_t j,
-    uint64_t nrows, uint64_t ncols,
-    int procs_per_row, int procs_per_col
-  );
+  namespace indextransform {
+    namespace base {
+      uint64_t naive(uint64_t globalid, uint64_t globalsize, int nprocs); // Previous name: globalindex2localindex_naive
+      uint64_t cycle(uint64_t globalid, uint64_t globalsize, int nprocs); // Previous name: globalindex2localindex_cycle
+    }
 
-  uint64_t edge2proc_2d_1d(
-    uint64_t i, uint64_t j,
-    uint64_t m, uint64_t n,
-    ProcessGrid * grid, int transpose
-  );
+    namespace global2group {
+      uint64_t col(Partitioning* self, uint64_t glob_col_id); // Previous name: globalcol2groupcol
+      uint64_t row(Partitioning* self, uint64_t glob_row_id); // Previous name: globalrow2grouprow
+    }
 
-  uint64_t globalindex2localindex_naive(uint64_t globalid, uint64_t globalsize, int nprocs);
+    namespace group2local {
+      uint64_t col(Partitioning* self, uint64_t grp_col_id); // Previous name: groupcol2localcol
+      uint64_t row(Partitioning* self, uint64_t grp_row_id); // Previous name: grouprow2localrow
+    }
 
-  uint64_t globalindex2localindex_cycle(uint64_t globalid, uint64_t globalsize, int nprocs);
+    namespace global2local {
+      uint64_t col(Partitioning* self, uint64_t glob_col_id); // Previous name: globalcol2localcol
+      uint64_t row(Partitioning* self, uint64_t glob_row_id); // Previous name: globalrow2localrow
+    }
+  }
 
 } // namespace dmmio::partitioning
 

@@ -202,165 +202,87 @@ namespace dmmio::io {
 
     switch (self->type) {
       case PartitioningType::Bcycle: {
-        self->edge2group          = dmmio::partitioning::edge2proc_2d_blockcycle;
-        self->edge2node           = dmmio::partitioning::edge2proc_1d_naive;
-        self->globalcol2groupcol  = dmmio::partitioning::globalindex2localindex_cycle;
-        self->globalrow2grouprow  = dmmio::partitioning::globalindex2localindex_cycle;
-        self->groupcol2localcol   = dmmio::partitioning::globalindex2localindex_naive;
-        self->grouprow2localrow   = dmmio::partitioning::globalindex2localindex_naive;
+        self->edge2group          = dmmio::partitioning::edgeowner::base::d2::blockcycle; // Previous: edge2proc_2d_blockcycle
+        self->edge2node           = dmmio::partitioning::edgeowner::base::d1::naive; // Previous: edge2proc_1d_naive
+        self->globalcol2groupcol  = dmmio::partitioning::indextransform::base::cycle; // Previous: globalindex2localindex_cycle
+        self->globalrow2grouprow  = dmmio::partitioning::indextransform::base::cycle; // Previous: globalindex2localindex_cycle
+        self->groupcol2localcol   = dmmio::partitioning::indextransform::base::naive; // Previous: globalindex2localindex_naive
+        self->grouprow2localrow   = dmmio::partitioning::indextransform::base::naive; // Previous: globalindex2localindex_naive
         break;
       }
 
       case PartitioningType::BcycleCycle: {
-        self->edge2group          = dmmio::partitioning::edge2proc_2d_blockcycle;
-        self->edge2node           = dmmio::partitioning::edge2proc_1d_cycle;
-        self->globalcol2groupcol  = dmmio::partitioning::globalindex2localindex_cycle;
-        self->globalrow2grouprow  = dmmio::partitioning::globalindex2localindex_cycle;
-        self->groupcol2localcol   = dmmio::partitioning::globalindex2localindex_naive;
-        self->grouprow2localrow   = dmmio::partitioning::globalindex2localindex_cycle;
+        self->edge2group          = dmmio::partitioning::edgeowner::base::d2::blockcycle;
+        self->edge2node           = dmmio::partitioning::edgeowner::base::d1::cycle; // Previous: edge2proc_1d_cycle
+        self->globalcol2groupcol  = dmmio::partitioning::indextransform::base::cycle;
+        self->globalrow2grouprow  = dmmio::partitioning::indextransform::base::cycle;
+        self->groupcol2localcol   = dmmio::partitioning::indextransform::base::naive;
+        self->grouprow2localrow   = dmmio::partitioning::indextransform::base::cycle;
         break;
       }
 
       case PartitioningType::RowSlicing: {
-        self->edge2node = dmmio::partitioning::edge2proc_1d_naive;
+        self->edge2node = dmmio::partitioning::edgeowner::base::d1::naive;
 
         if (self->op == Operation::None) {
-          self->edge2group          = dmmio::partitioning::edge2proc_2d_rowslicing;
-          self->globalcol2groupcol  = dmmio::partitioning::globalindex2localindex_naive;
-          self->globalrow2grouprow  = dmmio::partitioning::globalindex2localindex_cycle;
+          self->edge2group          = dmmio::partitioning::edgeowner::base::d2::rowslicing; // Previous: edge2proc_2d_rowslicing
+          self->globalcol2groupcol  = dmmio::partitioning::indextransform::base::naive;
+          self->globalrow2grouprow  = dmmio::partitioning::indextransform::base::cycle;
         } else {
-          self->edge2group          = dmmio::partitioning::edge2proc_2d_rowslicing_transpose;
-          self->globalcol2groupcol  = dmmio::partitioning::globalindex2localindex_cycle;
-          self->globalrow2grouprow  = dmmio::partitioning::globalindex2localindex_naive;
+          self->edge2group          = dmmio::partitioning::edgeowner::base::d2::rowslicing_transpose; // Previous: edge2proc_2d_rowslicing_transpose
+          self->globalcol2groupcol  = dmmio::partitioning::indextransform::base::cycle;
+          self->globalrow2grouprow  = dmmio::partitioning::indextransform::base::naive;
         }
 
-        self->groupcol2localcol = dmmio::partitioning::globalindex2localindex_naive;
-        self->grouprow2localrow = dmmio::partitioning::globalindex2localindex_naive;
+        self->groupcol2localcol = dmmio::partitioning::indextransform::base::naive;
+        self->grouprow2localrow = dmmio::partitioning::indextransform::base::naive;
         break;
       }
 
       case PartitioningType::RowSlicingCycle: {
-        self->edge2node = dmmio::partitioning::edge2proc_1d_cycle;
+        self->edge2node = dmmio::partitioning::edgeowner::base::d1::cycle;
 
         if (self->op == Operation::None) {
-          self->edge2group          = dmmio::partitioning::edge2proc_2d_rowslicing;
-          self->globalcol2groupcol  = dmmio::partitioning::globalindex2localindex_naive;
-          self->globalrow2grouprow  = dmmio::partitioning::globalindex2localindex_cycle;
+          self->edge2group          = dmmio::partitioning::edgeowner::base::d2::rowslicing;
+          self->globalcol2groupcol  = dmmio::partitioning::indextransform::base::naive;
+          self->globalrow2grouprow  = dmmio::partitioning::indextransform::base::cycle;
         } else {
-          self->edge2group          = dmmio::partitioning::edge2proc_2d_rowslicing_transpose;
-          self->globalcol2groupcol  = dmmio::partitioning::globalindex2localindex_cycle;
-          self->globalrow2grouprow  = dmmio::partitioning::globalindex2localindex_naive;
+          self->edge2group          = dmmio::partitioning::edgeowner::base::d2::rowslicing_transpose;
+          self->globalcol2groupcol  = dmmio::partitioning::indextransform::base::cycle;
+          self->globalrow2grouprow  = dmmio::partitioning::indextransform::base::naive;
         }
 
         self->groupcol2localcol = self->op == Operation::None 
-          ? dmmio::partitioning::globalindex2localindex_naive 
-          : dmmio::partitioning::globalindex2localindex_cycle;
+          ? dmmio::partitioning::indextransform::base::naive
+          : dmmio::partitioning::indextransform::base::cycle;
         self->grouprow2localrow = self->op == Operation::None
-          ? dmmio::partitioning::globalindex2localindex_cycle
-          : dmmio::partitioning::globalindex2localindex_naive;
+          ? dmmio::partitioning::indextransform::base::cycle
+          : dmmio::partitioning::indextransform::base::naive;
         break;
       }
 
       case PartitioningType::Naive: {
-          self->edge2group          = dmmio::partitioning::edge2proc_2d_naive;
-          self->edge2node           = dmmio::partitioning::edge2proc_1d_naive;
-          self->globalcol2groupcol  = dmmio::partitioning::globalindex2localindex_naive;
-          self->globalrow2grouprow  = dmmio::partitioning::globalindex2localindex_naive;
-          self->groupcol2localcol   = dmmio::partitioning::globalindex2localindex_naive;
-          self->grouprow2localrow   = dmmio::partitioning::globalindex2localindex_naive;
+          self->edge2group          = dmmio::partitioning::edgeowner::base::d2::naive; // Previous: edge2proc_2d_naive
+          self->edge2node           = dmmio::partitioning::edgeowner::base::d1::naive;
+          self->globalcol2groupcol  = dmmio::partitioning::indextransform::base::naive;
+          self->globalrow2grouprow  = dmmio::partitioning::indextransform::base::naive;
+          self->groupcol2localcol   = dmmio::partitioning::indextransform::base::naive;
+          self->grouprow2localrow   = dmmio::partitioning::indextransform::base::naive;
           break;
       }
 
       case PartitioningType::NaiveCycle: {
         // PartitioningType::RowSlicing and Partitioning_NAIVE use the same column partitioning
-        self->edge2group          = dmmio::partitioning::edge2proc_2d_naive;
-        self->edge2node           = dmmio::partitioning::edge2proc_1d_cycle;
-        self->globalcol2groupcol  = dmmio::partitioning::globalindex2localindex_naive;
-        self->globalrow2grouprow  = dmmio::partitioning::globalindex2localindex_naive;
-        self->groupcol2localcol   = dmmio::partitioning::globalindex2localindex_naive;
-        self->grouprow2localrow   = dmmio::partitioning::globalindex2localindex_cycle;
+        self->edge2group          = dmmio::partitioning::edgeowner::base::d2::naive;
+        self->edge2node           = dmmio::partitioning::edgeowner::base::d1::cycle;
+        self->globalcol2groupcol  = dmmio::partitioning::indextransform::base::naive;
+        self->globalrow2grouprow  = dmmio::partitioning::indextransform::base::naive;
+        self->groupcol2localcol   = dmmio::partitioning::indextransform::base::naive;
+        self->grouprow2localrow   = dmmio::partitioning::indextransform::base::cycle;
         break;
       }
     }
   }
-
-  // Function from upper index to inner index
-  uint64_t globalcol2groupcol (Partitioning *self, uint64_t glob_col_id) {
-  #ifndef SKIP_SETPARTFUNC_ASSERT
-    ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
-  #endif
-    return( self->globalcol2groupcol(glob_col_id, self->global_cols, (self->grid)->col_size) );
-  }
-
-  uint64_t globalrow2grouprow (Partitioning *self, uint64_t glob_row_id) {
-  #ifndef SKIP_SETPARTFUNC_ASSERT
-    ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
-  #endif
-    return( self->globalrow2grouprow(glob_row_id, self->global_rows, (self->grid)->row_size) );
-  }
-
-  // Functions from edge to process
-  uint64_t edge2group (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) {
-  #ifndef SKIP_SETPARTFUNC_ASSERT
-    ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
-  #endif
-    return( self->edge2group(glob_row_id, glob_col_id, self->global_rows, self->global_cols, (self->grid)->col_size, (self->grid)->row_size) );
-  }
-
-  uint64_t edge2node (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) {
-  #ifndef SKIP_SETPARTFUNC_ASSERT
-    ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
-  #endif
-    // uint64_t idxtosplit = (self->op=='l') ? (globalrow2grouprow(self, glob_row_id)) : (globalcol2groupcol(self, glob_col_id)) ;
-    // uint64_t dimtosplit = (self->op=='l') ? self->group_rows : self->group_cols ;
-    // BUG, tmp fix
-    uint64_t idxtosplit = (globalrow2grouprow(self, glob_row_id));
-    uint64_t dimtosplit = self->group_rows;
-    return( self->edge2node(idxtosplit, dimtosplit, (self->grid)->node_size) );
-  }
-
-  uint64_t groupcol2localcol (Partitioning *self, uint64_t grp_col_id) {
-  #ifndef SKIP_SETPARTFUNC_ASSERT
-    ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
-  #endif
-  //     int ncolsplit = (self->op=='l') ? 1 : ((self->grid)->pz) ;
-    int ncolsplit = 1; // BUG, tmp fix
-    return( self->groupcol2localcol(grp_col_id, self->group_cols, ncolsplit) );
-  }
-
-  uint64_t grouprow2localrow (Partitioning *self, uint64_t grp_row_id) {
-  #ifndef SKIP_SETPARTFUNC_ASSERT
-    ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
-  #endif
-    // int nrowsplit = (self->op=='l') ? ((self->grid)->pz) : 1 ;
-    int nrowsplit = ((self->grid)->node_size); // BUG, tmp fix
-    return( self->grouprow2localrow(grp_row_id, self->group_rows, nrowsplit) );
-  }
-
-  // Composed function: from global index to local index and from edge to global rank
-  uint64_t globalcol2localcol (Partitioning *self, uint64_t glob_col_id) {
-    uint64_t grp_col_id = globalcol2groupcol (self, glob_col_id);
-    return(  groupcol2localcol(self, grp_col_id) );
-  }
-
-  uint64_t globalrow2localrow (Partitioning *self, uint64_t glob_row_id) {
-    uint64_t grp_row_id = globalrow2grouprow (self, glob_row_id);
-    return( grouprow2localrow(self, grp_row_id) );
-  }
- 
-  uint64_t edge2globalprocess (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) {
-    int gid = edge2group(self, glob_row_id, glob_col_id); // BUG for the row slicing we need to solve the problem of the transpose
-    int intragroup_id = edge2node(self, glob_row_id, glob_col_id);
-    int pid = gid * ((self->grid)->node_size) + intragroup_id;
-
-  #if DEBUG_PARTITION
-    printf("%s: (%lu, %lu) mapped to %d. gid: %d, ig_id: %d\n",
-                    self->my_part_str, glob_row_id, glob_col_id, pid, gid, intragroup_id);
-    FLUSH_WAIT(0.5);
-  #endif
-    return(pid);
-  }
-
 
   // Sort entries by owner, producing a new sorted vector
   template<typename IT, typename VT>
