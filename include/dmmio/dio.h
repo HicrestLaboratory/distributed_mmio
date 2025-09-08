@@ -49,15 +49,15 @@ namespace dmmio::io {
   void set_partitioning_local_dim(dmmio::Partitioning* self);
   void set_partitioning_functions(dmmio::Partitioning* self);
 
-  uint64_t globalcol2groupcol (Partitioning *self, uint64_t glob_col_id);
-  uint64_t globalrow2grouprow (Partitioning *self, uint64_t glob_row_id);
-  uint64_t edge2group (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id);
-  uint64_t edge2node (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id);
-  uint64_t groupcol2localcol (Partitioning *self, uint64_t grp_col_id);
-  uint64_t grouprow2localrow (Partitioning *self, uint64_t grp_row_id);
-  uint64_t globalcol2localcol (Partitioning *self, uint64_t glob_col_id);
-  uint64_t globalrow2localrow (Partitioning *self, uint64_t glob_row_id);
-  uint64_t edge2globalprocess (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id);
+  // uint64_t globalcol2groupcol (Partitioning *self, uint64_t glob_col_id);
+  // uint64_t globalrow2grouprow (Partitioning *self, uint64_t glob_row_id);
+  // uint64_t edge2group (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id);
+  // uint64_t edge2node (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id);
+  // uint64_t groupcol2localcol (Partitioning *self, uint64_t grp_col_id);
+  // uint64_t grouprow2localrow (Partitioning *self, uint64_t grp_row_id);
+  // uint64_t globalcol2localcol (Partitioning *self, uint64_t glob_col_id);
+  // uint64_t globalrow2localrow (Partitioning *self, uint64_t glob_row_id);
+  // uint64_t edge2globalprocess (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id);
   
 } // namespace dmmio::io
 

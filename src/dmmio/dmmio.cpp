@@ -10,6 +10,7 @@
 #include "../../include/mmio/io.h"
 #include "../../include/dmmio/dmmio.h"
 #include "../../include/dmmio/dio.h"
+#include "../../include/dmmio/partitioning.h"
 
 using Matrix_Metadata = mmio::Matrix_Metadata;
 using Operation = dmmio::Operation;
@@ -111,7 +112,7 @@ namespace dmmio {
     dcoo->partitioning = partitioning;
 
     int *owner = (int*)malloc(sizeof(int)*local_nnz);
-    for (int i=0; i<local_nnz; i++) owner[i] = dmmio::io::edge2globalprocess(partitioning, entries[i].row, entries[i].col);
+    for (int i=0; i<local_nnz; i++) owner[i] = dmmio::partitioning::edgeowner::edge2owner(partitioning, entries[i].row, entries[i].col);
 
     #ifdef DEBUG
     MPI_ALL_PRINT(
@@ -128,7 +129,7 @@ namespace dmmio {
     free(owner);
 
     owner = (int*)malloc(sizeof(int)*local_nnz);
-    for (int i=0; i<local_nnz; i++) owner[i] = dmmio::io::edge2globalprocess(partitioning, sorted_entries[i].row, sorted_entries[i].col);
+    for (int i=0; i<local_nnz; i++) owner[i] = dmmio::partitioning::edgeowner::edge2owner(partitioning, sorted_entries[i].row, sorted_entries[i].col);
 
     #ifdef DEBUG
     MPI_ALL_PRINT(

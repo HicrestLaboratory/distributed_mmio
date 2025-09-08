@@ -7,6 +7,7 @@
 #include <dmmio/dio.h>
 #include <dmmio/dmmio.h>
 #include <dmmio/dutils.h>
+#include <dmmio/partitioning.h>
 
 #include <ccutils/mpi/mpi_macros.h>
 
@@ -114,7 +115,7 @@ int main(int argc, char** argv) {
     dbg_entries[i].entry.row = dcoo->coo->row[i];
     dbg_entries[i].entry.col = dcoo->coo->col[i];
     dbg_entries[i].entry.val = 1.0; // dcoo->coo->val[i];
-    dbg_entries[i].owner = dmmio::io::edge2globalprocess(dcoo->partitioning, dcoo->coo->row[i], dcoo->coo->col[i]);
+    dbg_entries[i].owner = dmmio::partitioning::edgeowner::edge2owner(dcoo->partitioning, dcoo->coo->row[i], dcoo->coo->col[i]);
   }
 
   // #define DEBUG
@@ -137,7 +138,7 @@ int main(int argc, char** argv) {
 
   gather_displs[0] = 0;
   for (int i = 1; i < world_size; i++) gather_displs[i] = gather_displs[i - 1] + gather_counts[i - 1];
-  int total_entries = (gather_displs[world_size - 1] + gather_counts[world_size - 1]) / sizeof(DbgEntry) ;
+  int total_entries = (gather_displs[world_size - 1] + gather_counts[world_size - 1]) / sizeof(DbgEntry);
 
   DbgEntry* all_entries = (DbgEntry*)malloc(total_entries * sizeof(DbgEntry));
 
