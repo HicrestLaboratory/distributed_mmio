@@ -344,7 +344,7 @@ namespace dmmio::io {
     }
 
     long int new_pos = ftell(f);
-    fprintf(stdout, "[DEBUG at line %d] process %d: %u nentries, %u to skip, %ld is the starting position and %ld is the current position (%u B)\n", __LINE__, rank, nentries, to_skip, pos, new_pos, to_skip*line_size);
+    // fprintf(stdout, "[DEBUG at line %d] process %d: %u nentries, %u to skip, %ld is the starting position and %ld is the current position (%u B)\n", __LINE__, rank, nentries, to_skip, pos, new_pos, to_skip*line_size);
 
     err = mm_read_mtx_crd_data<IT, VT>(f, nentries, entries, matcode, is_bmtx, meta->index_bytes, meta->value_bytes);
     fclose(f);

@@ -6,6 +6,7 @@
 namespace dmmio::utils {
 
     void ProcessGrid_print(const ProcessGrid* grid, FILE* fp = stdout);
+    int ProcessGrid_graph(const dmmio::ProcessGrid *grid, FILE* fp);
 
 } // namespace dmmio::utils
 
