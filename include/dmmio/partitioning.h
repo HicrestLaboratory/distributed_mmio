@@ -88,6 +88,8 @@ namespace dmmio::partitioning {
   }
 
   namespace indextransform {
+    typedef uint64_t (*IndexTransformFn)(Partitioning* self, uint64_t glob_col_id);
+
     namespace base {
       uint64_t naive(uint64_t globalid, uint64_t globalsize, int nprocs); // Previous name: globalindex2localindex_naive
       uint64_t cycle(uint64_t globalid, uint64_t globalsize, int nprocs); // Previous name: globalindex2localindex_cycle
@@ -106,6 +108,20 @@ namespace dmmio::partitioning {
     namespace global2local {
       uint64_t col(Partitioning* self, uint64_t glob_col_id); // Previous name: globalcol2localcol
       uint64_t row(Partitioning* self, uint64_t glob_row_id); // Previous name: globalrow2localrow
+    }
+
+    namespace transformCoo {
+      template<typename IT, typename VT>
+      void base(dmmio::DCOO<IT, VT>* dcoo, IndexTransformFn rowFn, IndexTransformFn colFn);
+
+      template<typename IT, typename VT>
+      void global2group(dmmio::DCOO<IT, VT>* dcoo);
+
+      template<typename IT, typename VT>
+      void group2local(dmmio::DCOO<IT, VT>* dcoo);
+
+      template<typename IT, typename VT>
+      void global2local(dmmio::DCOO<IT, VT>* dcoo);
     }
   }
 

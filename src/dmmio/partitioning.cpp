@@ -261,6 +261,61 @@ namespace dmmio::partitioning {
         return( group2local::row(self, grp_row_id) ); // Previous: grouprow2localrow
       }
     }
+
+    namespace transformCoo {
+      template<typename IT, typename VT>
+      void base(dmmio::DCOO<IT, VT>* dcoo, IndexTransformFn rowFn, IndexTransformFn colFn) {
+
+          IT nnz = dcoo->coo->nnz;
+          IT *row = dcoo->coo->row, *col = dcoo->coo->col;
+          for (size_t i=0; i<nnz; i++) {
+              row[i] = static_cast<IT>(rowFn(dcoo->partitioning, static_cast<uint64_t>(row[i])));
+              col[i] = static_cast<IT>(colFn(dcoo->partitioning, static_cast<uint64_t>(col[i])));
+          }
+      }
+
+      template<typename IT, typename VT>
+      void global2group(dmmio::DCOO<IT, VT>* dcoo) {
+          base(dcoo, global2group::row, global2group::row);
+
+          Partitioning *part = dcoo->partitioning;
+          dcoo->coo->nrows = part->group_rows;
+          dcoo->coo->ncols = part->group_cols;
+      }
+
+      template<typename IT, typename VT>
+      void group2local(dmmio::DCOO<IT, VT>* dcoo) {
+          base(dcoo, group2local::row, group2local::row);
+
+          Partitioning *part = dcoo->partitioning;
+          dcoo->coo->nrows = part->local_rows;
+          dcoo->coo->ncols = part->local_cols;
+      }
+
+      template<typename IT, typename VT>
+      void global2local(dmmio::DCOO<IT, VT>* dcoo) {
+          base(dcoo, global2local::row, global2local::row);
+
+          Partitioning *part = dcoo->partitioning;
+          dcoo->coo->nrows = part->local_rows;
+          dcoo->coo->ncols = part->local_cols;
+      }
+
+      #define TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(IT, VT) \
+        template void base(dmmio::DCOO<IT, VT>* dcoo, IndexTransformFn rowFn, IndexTransformFn colFn); \
+        template void global2group(dmmio::DCOO<IT, VT>* dcoo); \
+        template void group2local(dmmio::DCOO<IT, VT>* dcoo); \
+        template void global2local(dmmio::DCOO<IT, VT>* dcoo);
+
+      TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(uint32_t, float)
+      TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(uint32_t, double)
+      TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(uint64_t, float)
+      TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(uint64_t, double)
+      TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(int, float)
+      TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(int, double)
+      TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(uint64_t, uint64_t)
+    }
+
   }
 
 } // namespace dmmio::partitioning

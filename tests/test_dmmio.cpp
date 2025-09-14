@@ -182,6 +182,12 @@ int main(int argc, char** argv) {
     fclose(statfile);
   }
 
+  // Test the COO Index Transform
+  if (world_rank == 0) fprintf(stdout, "Global to group index transform...\n");
+  MPI_Barrier(MPI_COMM_WORLD);
+  dmmio::partitioning::indextransform::transformCoo::global2group(dcoo);
+  MPI_ALL_PRINT(mmio::utils::COO_print_as_dense(dcoo->coo, std::string("Rank ") + std::to_string(world_rank), fp))
+
   delete meta;
   dmmio::DCOO_destroy(&dcoo);
 
