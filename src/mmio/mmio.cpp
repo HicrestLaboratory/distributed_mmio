@@ -15,12 +15,15 @@ using Matrix_Metadata = mmio::Matrix_Metadata;
 template<typename IT, typename VT> using Entry = mmio::io::Entry<IT, VT>;
 template<typename IT, typename VT> using COO = mmio::COO<IT, VT>;
 template<typename IT, typename VT> using CSR = mmio::CSR<IT, VT>;
+template<typename IT, typename VT> using CSC = mmio::CSC<IT, VT>;
 
 #define MMIO_EXPLICIT_TEMPLATE_INST(IT, VT) \
   template COO<IT, VT>* mmio::COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSR<IT, VT>* mmio::CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
+  template CSC<IT, VT>* mmio::CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template void mmio::COO_destroy(COO<IT, VT> **coo); \
   template void mmio::CSR_destroy(CSR<IT, VT> **csr); \
+  template void mmio::CSC_destroy(CSC<IT, VT> **csc); \
   template COO<IT, VT>* mmio::COO_read(const char *filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
   template CSR<IT, VT>* mmio::CSR_read(const char *filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
   template COO<IT, VT>* mmio::COO_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
@@ -186,13 +189,13 @@ namespace mmio {
   template<typename IT, typename VT>
   void CSC_destroy(CSC<IT, VT> **csc) {
     if (*csc != NULL) {
-      if ((*csc)->row_ptr != NULL) {
-        free((*csc)->row_ptr);
-        (*csc)->row_ptr = NULL;
+      if ((*csc)->col_ptr != NULL) {
+        free((*csc)->col_ptr);
+        (*csc)->col_ptr = NULL;
       }
-      if ((*csc)->col_idx != NULL) {
-        free((*csc)->col_idx);
-        (*csc)->col_idx = NULL;
+      if ((*csc)->row_idx != NULL) {
+        free((*csc)->row_idx);
+        (*csc)->row_idx = NULL;
       }
       if ((*csc)->val != NULL) {
         free((*csc)->val);
