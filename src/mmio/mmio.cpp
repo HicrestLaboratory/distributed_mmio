@@ -167,6 +167,42 @@ namespace mmio {
     return csr;
   }
 
+  /********************* CSC ***************************/
+  template<typename IT, typename VT>
+  CSC<IT, VT>* CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val) {
+    CSC<IT, VT> *csc = (CSC<IT, VT> *)malloc(sizeof(CSC<IT, VT>));
+    csc->nrows = nrows;
+    csc->ncols = ncols;
+    csc->nnz = nnz;
+    csc->col_ptr = (IT *)malloc((ncols + 1) * sizeof(IT));
+    csc->row_idx = (IT *)malloc(nnz * sizeof(IT));
+    csc->val = NULL;
+    if (alloc_val) {
+      csc->val = (VT *)malloc(nnz * sizeof(VT));
+    }
+    return csc;
+  }
+
+  template<typename IT, typename VT>
+  void CSC_destroy(CSC<IT, VT> **csc) {
+    if (*csc != NULL) {
+      if ((*csc)->row_ptr != NULL) {
+        free((*csc)->row_ptr);
+        (*csc)->row_ptr = NULL;
+      }
+      if ((*csc)->col_idx != NULL) {
+        free((*csc)->col_idx);
+        (*csc)->col_idx = NULL;
+      }
+      if ((*csc)->val != NULL) {
+        free((*csc)->val);
+        (*csc)->val = NULL;
+      }
+      free(*csc);
+      *csc = NULL;
+    }
+  }
+
 } // namespace mmio 
 
 

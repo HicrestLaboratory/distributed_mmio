@@ -98,6 +98,12 @@ namespace mmio {
   CSR<IT, VT>* CSR_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL);
 
   /** CSC **/
+  template<typename IT, typename VT>
+  CSC<IT, VT>* CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val);
+
+  template<typename IT, typename VT>
+  void CSC_destroy(CSC<IT, VT>** csc);
+
   // TODO
 
 } // namespace mmio
