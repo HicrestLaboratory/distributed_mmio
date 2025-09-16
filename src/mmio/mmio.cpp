@@ -13,14 +13,16 @@
 
 using Matrix_Metadata = mmio::Matrix_Metadata;
 template<typename IT, typename VT> using Entry = mmio::io::Entry<IT, VT>;
-template<typename IT, typename VT> using COO = mmio::COO<IT, VT>;
-template<typename IT, typename VT> using CSR = mmio::CSR<IT, VT>;
-template<typename IT, typename VT> using CSC = mmio::CSC<IT, VT>;
+template<typename IT, typename VT> using DENSE = mmio::DENSE<IT, VT>;
+template<typename IT, typename VT> using COO   = mmio::COO<IT, VT>;
+template<typename IT, typename VT> using CSR   = mmio::CSR<IT, VT>;
+template<typename IT, typename VT> using CSC   = mmio::CSC<IT, VT>;
 
 #define MMIO_EXPLICIT_TEMPLATE_INST(IT, VT) \
   template COO<IT, VT>* mmio::COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSR<IT, VT>* mmio::CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSC<IT, VT>* mmio::CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
+  template DENSE<IT,VT>*mmio::DENSE_create(IT n, IT m); \
   template void mmio::COO_destroy(COO<IT, VT> **coo); \
   template void mmio::CSR_destroy(CSR<IT, VT> **csr); \
   template void mmio::CSC_destroy(CSC<IT, VT> **csc); \
@@ -29,8 +31,10 @@ template<typename IT, typename VT> using CSC = mmio::CSC<IT, VT>;
   template COO<IT, VT>* mmio::COO_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
   template CSR<IT, VT>* mmio::CSR_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
   template int mmio::COO_write(COO<IT, VT>* coo, const char *filename, bool write_as_binary, Matrix_Metadata* meta); \
-  template int mmio::COO_write_f(COO<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta);
-
+  template int mmio::COO_write_f(COO<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta); \
+  template DENSE<IT,VT>* mmio::coo2dense(COO<IT, VT>* coo); \
+  template DENSE<IT,VT>* mmio::csr2dense(const CSR<IT,VT>* csr); \
+  template DENSE<IT,VT>* mmio::matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B);
 
 namespace mmio {
   
