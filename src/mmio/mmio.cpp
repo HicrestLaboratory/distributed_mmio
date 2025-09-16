@@ -32,8 +32,8 @@ template<typename IT, typename VT> using CSC   = mmio::CSC<IT, VT>;
   template CSR<IT, VT>* mmio::CSR_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
   template int mmio::COO_write(COO<IT, VT>* coo, const char *filename, bool write_as_binary, Matrix_Metadata* meta); \
   template int mmio::COO_write_f(COO<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta); \
-  template DENSE<IT,VT>* mmio::coo2dense(COO<IT, VT>* coo); \
-  template DENSE<IT,VT>* mmio::csr2dense(const CSR<IT,VT>* csr); \
+  template DENSE<IT,VT>* mmio::coo2dense(COO<IT, VT>* coo);               \
+  template DENSE<IT,VT>* mmio::csr2dense(const CSR<IT,VT>* csr);          \
   template DENSE<IT,VT>* mmio::matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B);
 
 namespace mmio {
@@ -232,7 +232,7 @@ namespace mmio {
   template<typename IT, typename VT>
   DENSE<IT,VT>* coo2dense(COO<IT, VT>* coo) {
 
-    DENSE<IT,VT> *M = DENSE_create(coo->nrows, coo->ncols);
+    DENSE<IT,VT> *M = DENSE_create<IT,VT>(coo->nrows, coo->ncols);
     for(size_t i=0; i<(coo->nnz); i++) M->val[(coo->row[i])*M->ncols + (coo->col[i])] = coo->val[i];
 
     return(M);
@@ -240,7 +240,7 @@ namespace mmio {
 
   template<typename IT, typename VT>
   DENSE<IT,VT>* csr2dense(const CSR<IT,VT>* csr) {
-      DENSE<IT,VT> *dense = DENSE_create(csr->nrows, csr->ncols);
+      DENSE<IT,VT> *dense = DENSE_create<IT,VT>(csr->nrows, csr->ncols);
 
       // Fill in nonzeros
       for (IT i = 0; i < csr->nrows; i++) {
@@ -255,19 +255,20 @@ namespace mmio {
 
 
   template<typename IT, typename VT>
-  DENSE<IT,VT>* matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B) {
+  DENSE<IT,VT>* matmul(DENSE<IT,VT>* A_struct, DENSE<IT,VT>* B_struct) {
 
-    if (A->ncols != B->nrows) {
-      fprintf(stderr, "Error: matmult on uncompatible matrices [(%dx%d)*(%dx%d)]\n", A->ncols, A->nrows, B->ncols, B->nrows);
+    if (A_struct->ncols != B_struct->nrows) {
+      fprintf(stderr, "Error: matmult on uncompatible matrices [(%dx%d)*(%dx%d)]\n", A_struct->ncols, A_struct->nrows, B_struct->ncols, B_struct->nrows);
       return(nullptr);
     }
-    IT n = A->nrows, m = B->ncols, k = A->ncols;
+    IT n = A_struct->nrows, m = B_struct->ncols, k = A_struct->ncols;
+    VT *A = A_struct->val, *B = B_struct->val;
 
-    DENSE<IT,VT> *C = DENSE_create(n, m);
+    DENSE<IT,VT> *C = DENSE_create<IT,VT>(n, m);
     for (int i = 0; i < n; i++) {
           for (int j = 0; j < n; j++) {
               for (int h = 0; h < n; h++) {
-                  C[i*m + j] += A[i*k + h] * B[h*m + j];
+                  C->val[i*m + j] += A[i*k + h] * B[h*m + j];
               }
           }
       }
