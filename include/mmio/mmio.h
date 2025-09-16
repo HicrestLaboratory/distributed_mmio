@@ -63,6 +63,27 @@ namespace mmio {
     VT 	*val;
   };
 
+  template<typename IT, typename VT>
+  struct DENSE {
+    IT nrows;
+    IT ncols;
+    VT *val;
+
+    // Equality operator
+    bool operator==(const DENSE &other) const {
+        if (nrows != other.nrows || ncols != other.ncols) {
+            return false;
+        }
+        size_t size = static_cast<size_t>(nrows) * static_cast<size_t>(ncols);
+        for (size_t i = 0; i < size; i++) {
+            if (val[i] != other.val[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+  };
+
   /********************* Data Structures Functions ***************************/
 
   /** COO **/
@@ -105,6 +126,16 @@ namespace mmio {
   void CSC_destroy(CSC<IT, VT>** csc);
 
   // TODO
+
+  /** DENSE **/
+  template<typename IT, typename VT>
+  DENSE<IT,VT>* DENSE_create(IT n, IT m);
+
+  template<typename IT, typename VT>
+  DENSE<IT,VT>* coo2dense(COO<IT, VT> coo);
+
+  template<typename IT, typename VT>
+  DENSE<IT,VT>* matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B);
 
 } // namespace mmio
 

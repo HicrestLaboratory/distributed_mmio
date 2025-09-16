@@ -206,6 +206,54 @@ namespace mmio {
     }
   }
 
+  // TODO
+  // template<typename IT, typename VT>
+  // CSC<IT, VT>* CSC_read(const char *filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta) {
+  //   ....
+  // }
+
+  /******************** DENSE **************************/
+  template<typename IT, typename VT>
+  DENSE<IT,VT>* DENSE_create(IT n, IT m) {
+    DENSE<IT,VT> *M = (DENSE<IT,VT>*)malloc(sizeof(DENSE<IT,VT>));
+
+    M->nrows = n;
+    M->ncols = m;
+    M->val   = (VT*)malloc(sizeof(VT)*n*m);
+
+    for(size_t i=0; i<(n*m); i++) M->val[i] = 0;
+    return(M);
+  }
+
+  template<typename IT, typename VT>
+  DENSE<IT,VT>* coo2dense(COO<IT, VT> coo) {
+
+    DENSE<IT,VT> *M = DENSE_create(coo->nrows, coo->ncols);
+    for(size_t i=0; i<(coo->nnz); i++) M->val[(coo->row[i])*M->ncols + (coo->col[i])] = coo->val[i];
+
+    return(M);
+  }
+
+  template<typename IT, typename VT>
+  DENSE<IT,VT>* matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B) {
+
+    if (A->ncols != B->nrows) {
+      fprintf(stderr, "Error: matmult on uncompatible matrices [(%dx%d)*(%dx%d)]\n", A->ncols, A->nrows, B->ncols, B->nrows);
+      return(nullptr);
+    }
+    IT n = A->nrows, m = B->ncols, k = A->ncols;
+
+    DENSE<IT,VT> *C = DENSE_create(n, m);
+    for (int i = 0; i < n; i++) {
+          for (int j = 0; j < n; j++) {
+              for (int h = 0; h < n; h++) {
+                  C[i*m + j] += A[i*k + h] * B[h*m + j];
+              }
+          }
+      }
+      return(C);
+  }
+
 } // namespace mmio 
 
 
