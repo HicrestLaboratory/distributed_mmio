@@ -226,13 +226,29 @@ namespace mmio {
   }
 
   template<typename IT, typename VT>
-  DENSE<IT,VT>* coo2dense(COO<IT, VT> coo) {
+  DENSE<IT,VT>* coo2dense(COO<IT, VT>* coo) {
 
     DENSE<IT,VT> *M = DENSE_create(coo->nrows, coo->ncols);
     for(size_t i=0; i<(coo->nnz); i++) M->val[(coo->row[i])*M->ncols + (coo->col[i])] = coo->val[i];
 
     return(M);
   }
+
+  template<typename IT, typename VT>
+  DENSE<IT,VT>* csr2dense(const CSR<IT,VT>* csr) {
+      DENSE<IT,VT> *dense = DENSE_create(csr->nrows, csr->ncols);
+
+      // Fill in nonzeros
+      for (IT i = 0; i < csr->nrows; i++) {
+          for (IT idx = csr->row_ptr[i]; idx < csr->row_ptr[i+1]; idx++) {
+              IT j = csr->col_idx[idx];
+              dense->val[static_cast<size_t>(i) * csr->ncols + j] = csr->val[idx];
+          }
+      }
+
+      return(dense);
+  }
+
 
   template<typename IT, typename VT>
   DENSE<IT,VT>* matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B) {

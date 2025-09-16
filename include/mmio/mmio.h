@@ -82,6 +82,11 @@ namespace mmio {
         }
         return true;
     }
+
+    // Destructor
+    ~DENSE() {
+        delete[] val;
+    }
   };
 
   /********************* Data Structures Functions ***************************/
@@ -132,7 +137,10 @@ namespace mmio {
   DENSE<IT,VT>* DENSE_create(IT n, IT m);
 
   template<typename IT, typename VT>
-  DENSE<IT,VT>* coo2dense(COO<IT, VT> coo);
+  DENSE<IT,VT>* coo2dense(COO<IT, VT>* coo);
+
+  template<typename IT, typename VT>
+  DENSE<IT,VT>* csr2dense(const CSR<IT,VT>* csr);
 
   template<typename IT, typename VT>
   DENSE<IT,VT>* matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B);
