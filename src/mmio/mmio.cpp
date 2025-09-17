@@ -17,8 +17,10 @@ template<typename IT, typename VT> using DENSE = mmio::DENSE<IT, VT>;
 template<typename IT, typename VT> using COO   = mmio::COO<IT, VT>;
 template<typename IT, typename VT> using CSR   = mmio::CSR<IT, VT>;
 template<typename IT, typename VT> using CSC   = mmio::CSC<IT, VT>;
+template<typename IT, typename VT> using CSX   = mmio::CSX<IT, VT>;
 
 #define MMIO_EXPLICIT_TEMPLATE_INST(IT, VT) \
+  template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim); \
   template COO<IT, VT>* mmio::COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSR<IT, VT>* mmio::CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSC<IT, VT>* mmio::CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
@@ -26,6 +28,7 @@ template<typename IT, typename VT> using CSC   = mmio::CSC<IT, VT>;
   template void mmio::COO_destroy(COO<IT, VT> **coo); \
   template void mmio::CSR_destroy(CSR<IT, VT> **csr); \
   template void mmio::CSC_destroy(CSC<IT, VT> **csc); \
+  template void mmio::CSX_destroy(CSX<IT, VT> **csx); \
   template COO<IT, VT>* mmio::COO_read(const char *filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
   template CSR<IT, VT>* mmio::CSR_read(const char *filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
   template COO<IT, VT>* mmio::COO_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
@@ -215,6 +218,49 @@ namespace mmio {
   // CSC<IT, VT>* CSC_read(const char *filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta) {
   //   ....
   // }
+
+  /********************* CSX ***************************/
+  template<typename IT, typename VT>
+  CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim) {
+    CSX<IT, VT> *csx = (CSX<IT, VT> *)malloc(sizeof(CSX<IT, VT>));
+    csx->majordim = majordim;
+    csx->nrows    = nrows;
+    csx->ncols    = ncols;
+    csx->nnz      = nnz;
+    csx->idx_vec  = (IT *)malloc(nnz * sizeof(IT));
+
+    if (majordim == MajorDim::ROWS)
+      csx->ptr_vec = (IT *)malloc((nrows + 1) * sizeof(IT));
+    else
+      csx->ptr_vec = (IT *)malloc((ncols + 1) * sizeof(IT));
+
+    csx->val = NULL;
+    if (alloc_val) {
+      csx->val = (VT *)malloc(nnz * sizeof(VT));
+    }
+
+    return csx;
+  }
+
+  template<typename IT, typename VT>
+  void CSX_destroy(CSX<IT, VT> **csx) {
+    if (*csx != NULL) {
+      if ((*csx)->ptr_vec != NULL) {
+        free((*csx)->ptr_vec);
+        (*csx)->ptr_vec = NULL;
+      }
+      if ((*csx)->idx_vec != NULL) {
+        free((*csx)->idx_vec);
+        (*csx)->idx_vec = NULL;
+      }
+      if ((*csx)->val != NULL) {
+        free((*csx)->val);
+        (*csx)->val = NULL;
+      }
+      free(*csx);
+      *csx = NULL;
+    }
+  }
 
   /******************** DENSE **************************/
   template<typename IT, typename VT>

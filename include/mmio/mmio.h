@@ -63,6 +63,22 @@ namespace mmio {
     VT 	*val;
   };
 
+  enum MajorDim {
+    ROWS,  // i.e. CSR format
+    COLS   // i.e. CSC format
+  };
+
+  template<typename IT, typename VT>
+  struct CSX {
+    MajorDim majordim;
+    IT 	nrows;
+    IT 	ncols;
+    IT 	nnz;
+    IT 	*ptr_vec;
+    IT 	*idx_vec;
+    VT 	*val;
+  };
+
   template<typename IT, typename VT>
   struct DENSE {
     IT nrows;
@@ -131,6 +147,13 @@ namespace mmio {
   void CSC_destroy(CSC<IT, VT>** csc);
 
   // TODO
+
+  /** CSX **/
+  template<typename IT, typename VT>
+  CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim);
+
+  template<typename IT, typename VT>
+  void CSX_destroy(CSX<IT, VT>** csx);
 
   /** DENSE **/
   template<typename IT, typename VT>
