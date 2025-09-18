@@ -35,6 +35,8 @@ template<typename IT, typename VT> using CSX   = mmio::CSX<IT, VT>;
   template CSR<IT, VT>* mmio::CSR_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
   template int mmio::COO_write(COO<IT, VT>* coo, const char *filename, bool write_as_binary, Matrix_Metadata* meta); \
   template int mmio::COO_write_f(COO<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta); \
+  template CSX<IT, VT>*  mmio::CSR2CSX(CSR<IT, VT> * csr);                \
+  template CSX<IT, VT>*  mmio::CSC2CSX(CSC<IT, VT> * csc);                \
   template DENSE<IT,VT>* mmio::coo2dense(COO<IT, VT>* coo);               \
   template DENSE<IT,VT>* mmio::csr2dense(const CSR<IT,VT>* csr);          \
   template DENSE<IT,VT>* mmio::matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B);
@@ -247,7 +249,7 @@ namespace mmio {
     bool alloc_val = ((csr->val)!=NULL);
     IT nrows = csr->nrows, ncols = csr->ncols, nnz = csr->nnz;
 
-    CSX<IT, VT>* csx = CSX_create(nrows, ncols, nnz, alloc_val, MajorDim::ROWS);
+    CSX<IT, VT>* csx = CSX_create<IT,VT>(nrows, ncols, nnz, alloc_val, MajorDim::ROWS);
     csx->ptr_vec     = csr->row_ptr;
     csx->idx_vec     = csr->col_idx;
     if (alloc_val)
@@ -261,7 +263,7 @@ namespace mmio {
     bool alloc_val = ((csc->val)!=NULL);
     IT nrows = csc->nrows, ncols = csc->ncols, nnz = csc->nnz;
 
-    CSX<IT, VT>* csx = CSX_create(nrows, ncols, nnz, alloc_val, MajorDim::COLS);
+    CSX<IT, VT>* csx = CSX_create<IT,VT>(nrows, ncols, nnz, alloc_val, MajorDim::COLS);
     csx->ptr_vec     = csc->col_ptr;
     csx->idx_vec     = csc->row_idx;
     if (alloc_val)
