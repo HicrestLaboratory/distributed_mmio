@@ -243,6 +243,34 @@ namespace mmio {
   }
 
   template<typename IT, typename VT>
+  CSX<IT, VT>* CSR2CSX(CSR<IT, VT> * csr) {
+    bool alloc_val = ((csr->val)!=NULL);
+    IT nrows = csr->nrows, ncols = csr->ncols, nnz = csr->nnz;
+
+    CSX<IT, VT>* csx = CSX_create(nrows, ncols, nnz, alloc_val, MajorDim::ROWS);
+    csx->ptr_vec     = csr->row_ptr;
+    csx->idx_vec     = csr->col_idx;
+    if (alloc_val)
+      csx->val       = csr->val;
+
+    return(csx);
+  }
+
+  template<typename IT, typename VT>
+  CSX<IT, VT>* CSC2CSX(CSC<IT, VT> * csc) {
+    bool alloc_val = ((csc->val)!=NULL);
+    IT nrows = csc->nrows, ncols = csc->ncols, nnz = csc->nnz;
+
+    CSX<IT, VT>* csx = CSX_create(nrows, ncols, nnz, alloc_val, MajorDim::COLS);
+    csx->ptr_vec     = csc->col_ptr;
+    csx->idx_vec     = csc->row_idx;
+    if (alloc_val)
+      csx->val       = csc->val;
+
+    return(csx);
+  }
+
+  template<typename IT, typename VT>
   void CSX_destroy(CSX<IT, VT> **csx) {
     if (*csx != NULL) {
       if ((*csx)->ptr_vec != NULL) {

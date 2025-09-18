@@ -153,6 +153,12 @@ namespace mmio {
   CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim);
 
   template<typename IT, typename VT>
+  CSX<IT, VT>* CSR2CSX(CSR<IT, VT> * csr);
+
+  template<typename IT, typename VT>
+  CSX<IT, VT>* CSC2CSX(CSC<IT, VT> * csc);
+
+  template<typename IT, typename VT>
   void CSX_destroy(CSX<IT, VT>** csx);
 
   /** DENSE **/
