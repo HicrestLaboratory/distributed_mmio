@@ -159,6 +159,9 @@ namespace mmio {
   CSX<IT, VT>* CSC2CSX(CSC<IT, VT> * csc);
 
   template<typename IT, typename VT>
+  COO<IT, VT>* CSX2COO(CSX<IT, VT> * csx);
+
+  template<typename IT, typename VT>
   void CSX_destroy(CSX<IT, VT>** csx);
 
   /** DENSE **/

@@ -7,12 +7,14 @@
 
 template<typename IT, typename VT> using COO = mmio::COO<IT, VT>;
 template<typename IT, typename VT> using CSR = mmio::CSR<IT, VT>;
+template<typename IT, typename VT> using CSX = mmio::CSX<IT, VT>;
 
 #define MMIO_UTILS_EXPLICIT_TEMPLATE_INST(IT, VT) \
   template void mmio::utils::CSR_print(CSR<IT, VT> *csr, std::string header, FILE* fp); \
   template void mmio::utils::CSR_print_as_dense<IT, VT>(CSR<IT, VT> *csr, std::string header, FILE* fp); \
   template void mmio::utils::COO_print(COO<IT, VT> *coo, std::string header, FILE* fp); \
-  template void mmio::utils::COO_print_as_dense(COO<IT, VT> *coo, std::string header, FILE* fp);
+  template void mmio::utils::COO_print_as_dense(COO<IT, VT> *coo, std::string header, FILE* fp); \
+  template void mmio::utils::CSX_print_as_dense(CSX<IT, VT> *csx, std::string header, FILE* fp);
 
 
 namespace mmio::utils {
@@ -168,6 +170,12 @@ namespace mmio::utils {
       }
       fprintf(fp, "\n");
     }
+  }
+
+  template<typename IT, typename VT>
+  void CSX_print_as_dense(CSX<IT, VT> *csx, std::string header, FILE* fp) {
+    COO<IT,VT> *coo = CSX2COO(csx);
+    COO_print_as_dense(coo, header, fp);
   }
 
 } // namespace mmio::utils

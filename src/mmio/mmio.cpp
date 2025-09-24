@@ -37,6 +37,7 @@ template<typename IT, typename VT> using CSX   = mmio::CSX<IT, VT>;
   template int mmio::COO_write_f(COO<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta); \
   template CSX<IT, VT>*  mmio::CSR2CSX(CSR<IT, VT> * csr);                \
   template CSX<IT, VT>*  mmio::CSC2CSX(CSC<IT, VT> * csc);                \
+  template COO<IT, VT>*  mmio::CSX2COO(CSX<IT, VT> * csx);                       \
   template DENSE<IT,VT>* mmio::coo2dense(COO<IT, VT>* coo);               \
   template DENSE<IT,VT>* mmio::csr2dense(const CSR<IT,VT>* csr);          \
   template DENSE<IT,VT>* mmio::matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B);
@@ -270,6 +271,29 @@ namespace mmio {
       csx->val       = csc->val;
 
     return(csx);
+  }
+
+  template<typename IT, typename VT>
+  COO<IT, VT>* CSX2COO(CSX<IT, VT> * csx) {
+    IT n = csx->nrows, m = csx->ncols, nnz = csx->nnz;
+    COO<IT, VT>* coo = COO_create<IT,VT>(n, m, nnz, true);
+
+    MajorDim layout = csx->majordim;
+    IT ptrvecsize = (layout == MajorDim::ROWS) ? n : m;
+    for (IT i=0; i<ptrvecsize; i++) {
+        for (int j=0; j<(csx->ptr_vec[i+1] - csx->ptr_vec[i]); j++) {
+            IT dest_idx = csx->ptr_vec[i]+j;
+            IT row = (layout == MajorDim::COLS) ? (csx->idx_vec[dest_idx]) : (i) ;
+            IT col = (layout == MajorDim::ROWS) ? (csx->idx_vec[dest_idx]) : (i) ;
+            VT val = csx->val[dest_idx];
+
+            coo->row[dest_idx] = row;
+            coo->col[dest_idx] = col;
+            coo->val[dest_idx] = val;
+        }
+    }
+
+    return(coo);
   }
 
   template<typename IT, typename VT>
