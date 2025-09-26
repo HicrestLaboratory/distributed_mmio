@@ -94,7 +94,10 @@ namespace mmio::io {
   /// @param meta 
   /// @return The actual number of non-zeros
   template<typename IT, typename VT>
-  IT mm_duplicate_entries_for_symmetric_matrices(Entry<IT, VT>* entries, IT nentries, Matrix_Metadata* meta);
+  IT mm_duplicate_entries_for_symmetric_matrices(Entry<IT, VT>* entries, IT nentries, IT nnz_upperbound, Matrix_Metadata* meta);
+
+  template<typename IT, typename VT>
+  IT mm_count_duplicates(Entry<IT, VT>* entries, IT nentries, IT nnz_upperbound, Matrix_Metadata* meta);
 
   /// @brief Sets `meta` values form `matcode`
   /// @param meta 

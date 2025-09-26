@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <vector>
 #include <unistd.h>
+#include <string.h>
 #include <mpi.h>
 #include <ccutils/colors.h>
 #include <ccutils/macros.h>
@@ -333,7 +334,10 @@ namespace dmmio::io {
     
     long int pos = ftell(f);
     uint16_t line_size = meta->is_pattern ? (2 * meta->index_bytes) : (2 * meta->index_bytes + meta->value_bytes);
-    nentries = (rank < nnz_upperbound % mpi_comm_size) ? (nnz_upperbound / mpi_comm_size + 1) : (nnz_upperbound / mpi_comm_size);
+
+    nentries = (rank < nnz_upperbound% mpi_comm_size) ? (nnz_upperbound / mpi_comm_size + 1) : (nnz_upperbound / mpi_comm_size);
+
+
     uint32_t to_skip = (rank < nnz_upperbound % mpi_comm_size) ? (nentries * rank) : (nentries * rank + nnz_upperbound % mpi_comm_size);
     Entry<IT, VT> *entries = (Entry<IT, VT> *)malloc(nentries * sizeof(Entry<IT, VT>));
 
@@ -354,7 +358,7 @@ namespace dmmio::io {
       return NULL;
     }
 
-    local_nnz = mm_duplicate_entries_for_symmetric_matrices(entries, nentries, meta);
+    local_nnz = mm_duplicate_entries_for_symmetric_matrices(entries, nentries, local_nnz, meta);
 
     return entries;
   }

@@ -27,7 +27,8 @@ template<typename IT, typename VT> using CSR = mmio::CSR<IT, VT>;
   template int mmio::io::mm_read_mtx_crd_data(FILE *f, int nnz, Entry<IT, VT> *entries, MM_typecode *matcode, bool is_bmtx, uint8_t idx_bytes, uint8_t value_bytes); \
   template int mmio::io::mm_write_binary_matrix_market(FILE *f, COO<IT, VT> *coo, Matrix_Metadata *meta); \
   template Entry<IT, VT>* mmio::io::mm_parse_file(FILE *f, IT &nrows, IT &ncols, IT &nnz, MM_typecode *matcode, bool is_bmtx, Matrix_Metadata* meta); \
-  template int mmio::io::mm_write_matrix_market(FILE *f, COO<IT, VT> *coo, Matrix_Metadata *meta);
+  template int mmio::io::mm_write_matrix_market(FILE *f, COO<IT, VT> *coo, Matrix_Metadata *meta); \
+  template IT mmio::io::mm_count_duplicates(Entry<IT, VT>* entries, IT nentries, IT nnz_upperbound, Matrix_Metadata* meta);
   // template int mmio::io::compare_entries(const void *a, const void *b);
   // template int mmio::io::mm_parse_header(FILE *f, IT &nrows, IT &ncols, IT &nentries, IT &nnz_upperbound, MM_typecode *matcode, bool is_bmtx, Matrix_Metadata* meta); \
   
@@ -312,8 +313,9 @@ namespace mmio::io {
       return MMIO_ERR_COULD_NOT_READ_FILE;
     }
 
-    if (fread(buffer, 1, total_size, f) != total_size) {
-      fprintf(stderr, "Failed to read expected %zu bytes from file.\n", total_size);
+    size_t bytes_read = fread(buffer, 1, total_size, f);
+    if (bytes_read != total_size) {
+      fprintf(stderr, "Failed to read expected %zu bytes from file. Only read %zu bytes. \n", total_size, bytes_read);
       free(buffer);
       return MMIO_ERR_PREMATURE_EOF;
     }
@@ -422,7 +424,7 @@ namespace mmio::io {
     int index_bytes = required_bytes(std::max(coo->nrows, coo->ncols));
 
     IT nentries = coo->nnz;
-    if (meta->is_symmetric) { // TODO optimize
+    if (meta->is_symmetric && false) { // TODO optimize
       nentries = 0;
       for (IT i = 0; i < coo->nnz; ++i) {
         if (coo->row[i] <= coo->col[i]) {
@@ -432,6 +434,7 @@ namespace mmio::io {
     }
 
     int err = write_matrix_market_header(f, meta, index_bytes, coo->nrows, coo->ncols, nentries);
+    printf("%s\n", meta->mm_header);
     if (err != 0) {
       fprintf(stderr, "Something went wrong writing the file header.\n");
       fclose(f);
@@ -440,7 +443,7 @@ namespace mmio::io {
 
     // Write binary data
     for (IT i = 0; i < coo->nnz; ++i) {
-      if (meta->is_symmetric && coo->row[i] > coo->col[i]) continue; // For patter matrices
+      //if (meta->is_symmetric && coo->row[i] > coo->col[i]) continue; // For patter matrices
 
       // Write row
       switch (index_bytes) {
@@ -562,6 +565,7 @@ namespace mmio::io {
       return err;
     }
 
+
     uint8_t idx_bytes = 0;
     uint8_t value_bytes = 0;
     int IT_required_bytes = required_bytes(std::max(_nrows, _ncols));
@@ -600,7 +604,21 @@ namespace mmio::io {
   }
 
   template<typename IT, typename VT>
-  IT mm_duplicate_entries_for_symmetric_matrices(Entry<IT, VT>* entries, IT nentries, Matrix_Metadata* meta) {
+  IT mm_count_duplicates(Entry<IT, VT>* entries, IT nentries, IT nnz_upperbound, Matrix_Metadata* meta) {
+    IT nnz = nentries;
+    if (meta->is_symmetric) {
+      // Duplicate the entries for symmetric matrices
+      for (uint64_t i = 0; i < nentries; ++i) {
+        if (entries[i].row != entries[i].col) { // Do not duplicate diagonal
+            nnz++;
+        }
+      }
+    }
+    return nnz;
+  }
+
+  template<typename IT, typename VT>
+  IT mm_duplicate_entries_for_symmetric_matrices(Entry<IT, VT>* entries, IT nentries, IT nnz_upperbound, Matrix_Metadata* meta) {
     IT nnz = nentries;
     if (meta->is_symmetric) {
       // Duplicate the entries for symmetric matrices
@@ -627,7 +645,13 @@ namespace mmio::io {
       return NULL;
     }
 
-    Entry<IT, VT> *entries = (Entry<IT, VT> *)malloc((meta->is_symmetric ? 2 : 1) * nentries * sizeof(Entry<IT, VT>));
+    size_t entry_size = nentries * sizeof(Entry<IT, VT>);
+
+    if (meta->is_symmetric) {
+        entry_size *= 2;
+    }
+
+    Entry<IT, VT> *entries = (Entry<IT, VT> *)malloc(entry_size);
     err = mmio::io::mm_read_mtx_crd_data<IT, VT>(f, nentries, entries, matcode, is_bmtx, meta->index_bytes, meta->value_bytes);
     fclose(f);
     if (err != 0) {
@@ -636,7 +660,7 @@ namespace mmio::io {
       return NULL;
     }
 
-    nnz = mmio::io::mm_duplicate_entries_for_symmetric_matrices(entries, nentries, meta);
+    nnz = mmio::io::mm_duplicate_entries_for_symmetric_matrices(entries, nentries, nnz_upperbound, meta);
 
     return entries;
   }

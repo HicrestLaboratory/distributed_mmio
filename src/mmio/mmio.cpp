@@ -117,8 +117,21 @@ namespace mmio {
         default:                  { fprintf(stderr, "BUG: ValueType not recognized\n"); return 100; }
       }
 
-      meta->mm_header += meta->is_symmetric ? "symmetric" : "general";
+      meta->mm_header += (meta->is_symmetric && false) ? "symmetric" : "general";
     }
+
+    std::string g("general");
+    std::string s("symmetric");
+    size_t pos = meta->mm_header.find("symmetric");
+    if (pos != std::string::npos)
+    {
+        meta->mm_header.replace(pos, s.length(), g);
+    }
+
+    printf("%s\n", meta->mm_header.c_str());
+    fflush(stdout);
+
+
     
     return write_as_binary ? mmio::io::mm_write_binary_matrix_market(f, coo, meta) : mmio::io::mm_write_matrix_market(f, coo, meta);
   }
