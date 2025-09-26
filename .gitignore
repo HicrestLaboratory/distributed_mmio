@@ -1,5 +1,12 @@
 .vscode/
+.kdev4/
 build/
 
-*.mtx
-*.bmtx
+distributed_mmio.kdev4
+
+examples/mmio/build/
+examples/dmmio/build/
+
+tests/test_matrices
+tests/results
+tests/SbatchMan

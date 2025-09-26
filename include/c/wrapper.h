@@ -1,5 +1,5 @@
-#ifndef MMIO_C_WRAPPER_H
-#define MMIO_C_WRAPPER_H
+#ifndef __MMIO_C_WRAPPER_H__
+#define __MMIO_C_WRAPPER_H__
 
 #include <stdbool.h>
 #include <stdint.h> // For uint32_t, uint64_t
@@ -12,7 +12,7 @@ extern "C" {
 
 /*
  * ============================================================================
- * C-style structs mirroring the C++ CSR_local and COO_local templates.
+ * C-style structs mirroring the C++ CSR and COO templates.
  * One struct is defined for each supported (IndexType, ValueType) combination.
  * ============================================================================
  */
@@ -131,4 +131,4 @@ void mmio_destroy_coo_u64_f64(mmio_coo_u64_f64_t* matrix);
 }
 #endif
 
-#endif // MMIO_C_WRAPPER_H
+#endif // __MMIO_C_WRAPPER_H__

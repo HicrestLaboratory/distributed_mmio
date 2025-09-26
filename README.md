@@ -1,10 +1,10 @@
 # Distributed MMIO
 
-Lightweight Templated `C++` library for local or distributed reading of Matrix Market files. Can be also used in a `C project via a C wrapper.
+Lightweight Templated `C++` library for local or distributed reading of Matrix Market files. Can be also used in a `C` project via a provided wrapper.
 
 This repository integrates with MtxMan ([https://github.com/ThomasPasquali/MtxMan](https://github.com/ThomasPasquali/MtxMan)) to simplify the management of Matrix Market files, check it out!
 
-## Including "Distributed MMIO" in your project
+## Usage in CMake Projects
 
 This library can be included either as a submodule or by copying the source files directly into your project.
 
@@ -43,6 +43,8 @@ LDFLAGS += /path/to/distributed_mmio/libdistributed_mmio.a
 <!-- ## Including "Distributed MMIO" with CMake
 
 Simply add to your `CMakeLists.txt` the following:
+=======
+<!-- TODO ### Fetch and Build Automatically (Recommended)
 
 ```cmake
 include(FetchContent)
@@ -56,6 +58,31 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(distributed_mmio)
 
 target_link_libraries(my_target PRIVATE distributed_mmio)
+``` -->
+
+### Clone and Include
+
+
+
+```cmake
+add_subdirectory(distributed_mmio)
+```
+
+If you are not using CMake, make sure to include the `distributed_mmio/include` directory and `distributed_mmio/src/mmio.cpp`, `distributed_mmio/src/mmio_utils.cpp` source files.
+
+<!-- ### Makefile Usage (for C projects)
+
+If you are using a Makefile, first build the library:
+
+```bash
+cd distributed_mmio
+make
+```
+Then, you can include the library in your project by adding the following lines to your Makefile:
+
+```makefile
+CFLAGS += -I/path/to/distributed_mmio/include
+LDFLAGS += /path/to/distributed_mmio/libdistributed_mmio.a
 ``` -->
 
 ## Usage Examples
@@ -83,8 +110,12 @@ Explicit template instantiation is currently available for types:
 | uint32_t   | double     |
 | uint64_t   | float      |
 | uint64_t   | double     |
+| uint64_t   | uint64_t   |
+| int        | float      |
+| int        | double     |
 
-> If you need other, add the declaration at the end of `mmio.cpp`. 
+> [!INFO]  
+> If you need other, add the declaration at the end of `mmio.cpp`, `mmio_structs.cpp`, `distributed_mmio.cpp` and `distributed_mmio_structs.cpp`. 
 
 ### Non-distributed Matrix Market File CSR Read (C wrapper)
 
@@ -114,7 +145,16 @@ Where:
 
 This repository also allows to convert, read and write matrices into a binary format.
 
-> **IMPORTANT.** `distributed_mmio` recognizes a file as Binary Matrix Market ONLY if its file extension is `.bmtx`. Currently there are no explicit flags to override this behaviour.
+> [!IMPORTANT]  
+> `distributed_mmio` recognizes a file as Binary Matrix Market ONLY if its file extension is `.bmtx`. Currently there are no explicit flags to override this behavior.
+
+## MTX to BMTX Converter Tool
+
+Building `distributed_mmio` setting the `DMMIO_TOOLS` option (`-DDMMIO_TOOLS=ON`) will allow to build the target `mtx_to_bmtx`.  
+This executable will read a `.mtx` file and generate the corresponding `.bmtx`.
+
+> [!NOTE]  
+> This tool currently operates only locally (non-distributed). Converting large files may take a while. 
 
 ## How it works
 
