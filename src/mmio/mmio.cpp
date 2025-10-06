@@ -21,6 +21,7 @@ template<typename IT, typename VT> using CSX   = mmio::CSX<IT, VT>;
 
 #define MMIO_EXPLICIT_TEMPLATE_INST(IT, VT) \
   template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim); \
+  template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT *ptr_vec, IT *idx_vec, VT *val_vec); \
   template COO<IT, VT>* mmio::COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSR<IT, VT>* mmio::CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSC<IT, VT>* mmio::CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
@@ -243,6 +244,21 @@ namespace mmio {
     }
 
     return csx;
+  }
+
+  template<typename IT, typename VT>
+  CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT *ptr_vec, IT *idx_vec, VT *val_vec) {
+    mmio::CSX<IT, VT> *csx = (mmio::CSX<IT, VT>*)malloc(sizeof(mmio::CSX<IT, VT>));
+    csx->majordim = majordim;
+    csx->nrows    = nrows;
+    csx->ncols    = ncols;
+    csx->nnz      = nnz;
+
+    csx->ptr_vec = ptr_vec;
+    csx->idx_vec = idx_vec;
+    csx->val     = val_vec;
+
+    return(csx);
   }
 
   template<typename IT, typename VT>
