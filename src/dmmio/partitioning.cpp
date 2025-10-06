@@ -314,6 +314,8 @@ namespace dmmio::partitioning {
       TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(int, float)
       TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(int, double)
       TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(uint64_t, uint64_t)
+      TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(int64_t, float)
+      TRANSFORMCOO_EXPLICIT_TEMPLATE_INST(int64_t, double)
     }
 
   }
