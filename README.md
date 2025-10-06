@@ -6,7 +6,43 @@ This repository integrates with MtxMan ([https://github.com/ThomasPasquali/MtxMa
 
 ## Usage in CMake Projects
 
-<!-- TODO ### Fetch and Build Automatically (Recommended)
+This library can be included either as a submodule or by copying the source files directly into your project.
+
+### CMake Usage (for C++ projects)
+
+If you are using CMake, you can include this library as follows:
+
+```cmake
+add_subdirectory(distributed_mmio)
+```
+
+And ensure to link the target on the executables that require it:
+
+```cmake
+add_executable(main main.cpp)
+target_link_libraries(main distributed_mmio <...> )
+```
+
+If you are not using CMake, make sure to include the `distributed_mmio/include` directory and `distributed_mmio/src/mmio.cpp`, `distributed_mmio/src/mmio_utils.cpp` source files.
+
+### Makefile Usage (for C projects)
+
+If you are using a Makefile, first build the library:
+
+```bash
+cd distributed_mmio
+make
+```
+Then, you can include the library in your project by adding the following lines to your Makefile:
+
+```makefile
+CFLAGS += -I/path/to/distributed_mmio/include
+LDFLAGS += /path/to/distributed_mmio/libdistributed_mmio.a
+```
+
+<!-- ## Including "Distributed MMIO" with CMake
+
+Simply add to your `CMakeLists.txt` the following:
 
 ```cmake
 include(FetchContent)
@@ -52,7 +88,7 @@ LDFLAGS += /path/to/distributed_mmio/libdistributed_mmio.a
 ### Non-distributed Matrix Market File CSR Read 
 
 ```c++
-#include "../distributed_mmio/include/mmio.h"
+#include "mmio.h"
 // ...
 CSR_local<uint32_t, float> *csr_matrix = Distr_MMIO_CSR_local_read<uint32_t, float>("path/to/mtx_file", false, &meta);
 COO_local<uint64_t, double> *coo_matrix = Distr_MMIO_COO_local_read<uint64_t, double>("path/to/mtx_file", false, &meta);
