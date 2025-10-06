@@ -122,7 +122,7 @@ namespace dmmio::partitioning {
       #if DEBUG_PARTITION
         printf("(%lu, %lu) mapped to %d. rpg:%d, cpg:%d, gid:%d, rpp:%d, ig_id: %d\n",
                         i, j, pid, rpg, cpg, gid, rpp, intragroup_id);
-        FLUSH_WAIT(0.5);
+        FLUSH_WAIT(500000);
       #endif
 
         ASSERT((pid < grid->global_size), "pid is %d, must be < %d\n", pid, grid->global_size);
@@ -162,7 +162,7 @@ namespace dmmio::partitioning {
       #if DEBUG_PARTITION
         printf("%s: (%lu, %lu) mapped to %d. gid: %d, ig_id: %d\n",
                         self->my_part_str, glob_row_id, glob_col_id, pid, gid, intragroup_id);
-        FLUSH_WAIT(0.5);
+        FLUSH_WAIT(500000);
       #endif
         return(pid);
       }
