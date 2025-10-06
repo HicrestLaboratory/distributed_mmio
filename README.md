@@ -43,7 +43,6 @@ LDFLAGS += /path/to/distributed_mmio/libdistributed_mmio.a
 <!-- ## Including "Distributed MMIO" with CMake
 
 Simply add to your `CMakeLists.txt` the following:
-=======
 <!-- TODO ### Fetch and Build Automatically (Recommended)
 
 ```cmake
