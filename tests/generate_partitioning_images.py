@@ -8,16 +8,18 @@ import seaborn as sns
 import sys
 from io import StringIO
 
-GPUPERNODE=2
-
-def plot_csv(df: pd.DataFrame, title: str, out_file: Path):
+def plot_csv(df: pd.DataFrame, title: str, out_file: Path, ranks: int, grid_rows: int, grid_cols: int):
   # Add the new columns
-  df['nodeid'] = df['rank'] // GPUPERNODE
-  df['gpuid'] = df['rank'] % GPUPERNODE
+  ranks_per_group = ranks / (grid_rows + grid_cols)
+  df['nodeid'] = df['rank'] // ranks_per_group
+  df['localid'] = df['rank'] % ranks_per_group
+  df['nodeid'] = df['nodeid'].astype(int)
+  df['localid'] = df['localid'].astype(int)
+  print(df)
 
   # Create the point plot
   plt.figure(figsize=(10, 8))
-  sns.scatterplot(data=df, x='colid', y='rowid', hue='nodeid', style='gpuid', palette='viridis', s=100)
+  sns.scatterplot(data=df, x='colid', y='rowid', hue='nodeid', style='localid', palette='viridis', s=100)
 
   # Set plot title and labels
   plt.title(title)
@@ -61,23 +63,31 @@ if __name__ == "__main__":
       if not args:
         raise Error(f'Job {j} wrong args!')
       
-      ranks = args['np']
+      ranks = int(args['np'])
       file = Path(args['f'])
-      grid_rows = args['r']
-      grid_cols = args['c']
+      grid_rows = int(args['r'])
+      grid_cols = int(args['c'])
       partitioning_type = args['p']
       transpose = bool(args['t'])
-      # The following will only work for PaRMAT names
       file_parts = file.stem.split('_')
-      N = int(file_parts[1][1:])
-      M = int(file_parts[2][1:])
+      if file.stem.startswith('parmat_'):
+        N = int(file_parts[1][1:])
+        M = int(file_parts[2][1:])
+      elif file.stem.startswith('graph500_'):
+        N = 2**int(file_parts[1])
+        M = N * int(file_parts[2])
+      else:
+        print(f'Warning: unsupported matrix "{file}", skipping')
+        continue
+        
       print(args)
       print(df)
       print('='*50)
       name = f'{N}x{N}_{M}nz_{ranks}ranks_{grid_rows}x{grid_cols}grid_{partitioning_type}part{"_transpose" if transpose else ""}'
       path = Path(f'results/{name}.png')
       path.parent.mkdir(exist_ok=True, parents=True)
-      plot_csv(df, name, path)
+      plot_csv(df, name, path, ranks, grid_rows, grid_cols)
+      exit()
     else:
       jobs_failed.append(j)
       

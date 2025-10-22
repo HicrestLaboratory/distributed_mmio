@@ -1,4 +1,4 @@
-path: ./test_matrices
+path: ./matrices_test
 
 square:
   generators:

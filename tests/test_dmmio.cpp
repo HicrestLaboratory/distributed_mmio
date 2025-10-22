@@ -111,10 +111,12 @@ int main(int argc, char** argv) {
   //   fprintf(fp, "\n")
   // )
 
+  //dmmio::partitioning::indextransform:: 
   for (int i=0; i<local_nnz; i++) {
+    // FIXME convert back to global indices
     dbg_entries[i].entry.row = dcoo->coo->row[i];
     dbg_entries[i].entry.col = dcoo->coo->col[i];
-    dbg_entries[i].entry.val = 1.0; // dcoo->coo->val[i];
+    dbg_entries[i].entry.val = 1.0;
     dbg_entries[i].owner = dmmio::partitioning::edgeowner::edge2owner(dcoo->partitioning, dcoo->coo->row[i], dcoo->coo->col[i]);
   }
 
@@ -144,7 +146,7 @@ int main(int argc, char** argv) {
 
   MPI_Allgatherv(
     dbg_entries,                   // send buffer
-    local_nnz * sizeof(DbgEntry), // send count
+    local_nnz * sizeof(DbgEntry),  // send count
     MPI_BYTE,                      // type
     all_entries,                   // receive buffer
     gather_counts,                 // receive counts
@@ -170,16 +172,19 @@ int main(int argc, char** argv) {
     // char csvname[200];
     // sprintf(csvname, "checktest_%d_%c.csv", partitioning_type, op);
     // FILE *statfile = fopen(csvname, "w");
-    FILE *statfile = stdout;
-    fprintf(statfile, "[OUT CSV]\n");
-    fprintf(statfile, "rank,rowid,colid,val\n");
+    // FILE *statfile = stdout;
+    printf("[OUT CSV]\n");
+    printf("rank,rowid,colid,val\n");
 
     for (int k=0; k<total_entries; k++) {
-      fprintf(statfile, "%4d,%4lu,%4lu,%lu\n",
-                  all_entries[k].owner, all_entries[k].entry.row, all_entries[k].entry.col, all_entries[k].entry.val);
+      printf("%4d,%4lu,%4lu,%lu\n",
+              all_entries[k].owner,
+              all_entries[k].entry.row,
+              all_entries[k].entry.col,
+              all_entries[k].entry.val);
     }
-    fprintf(statfile, "[END OUT CSV]\n");
-    fclose(statfile);
+    printf("[END OUT CSV]\n");
+    // fclose(statfile);
   }
 
   // Test the COO Index Transform
