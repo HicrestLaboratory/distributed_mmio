@@ -4,6 +4,7 @@
 #include <string.h>
 #include <cstring>
 #include <cstdlib>
+#include <cassert>
 #include <algorithm>
 #include <string>
 #include <unistd.h>
@@ -20,8 +21,12 @@ template<typename IT, typename VT> using CSC   = mmio::CSC<IT, VT>;
 template<typename IT, typename VT> using CSX   = mmio::CSX<IT, VT>;
 
 #define MMIO_EXPLICIT_TEMPLATE_INST(IT, VT) \
+  template size_t mmio::CSX_buf_size<IT, VT>(IT nrows, IT ncols, IT nnz, MajorDim majordim); \
+  template size_t mmio::CSX_buf_size(CSX<IT, VT> * csx); \
+  template void mmio::CSX_get_ptrs(IT nrows, IT ncols, IT nnz, char * buf, IT ** ptr_vec, IT ** idx_vec, VT ** val_vec); \
   template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim); \
   template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT *ptr_vec, IT *idx_vec, VT *val_vec); \
+  template CSX<IT, VT>* mmio::CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim); \
   template COO<IT, VT>* mmio::COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSR<IT, VT>* mmio::CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSC<IT, VT>* mmio::CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
@@ -238,6 +243,46 @@ namespace mmio {
 
   /********************* CSX ***************************/
   template<typename IT, typename VT>
+  size_t CSX_buf_size(IT nrows, IT ncols, IT nnz, MajorDim majordim) 
+  {
+      assert(sizeof(IT) == sizeof(VT));
+      size_t result = 0;
+      result += sizeof(VT) * nnz;
+      result += sizeof(IT) * nnz;
+      if (majordim == MajorDim::ROWS)
+      {
+          result += sizeof(IT) * (nrows + 1);
+      }
+      else
+      {
+          result += sizeof(IT) * (ncols + 1);
+      }
+      return result;
+  }
+
+
+  template<typename IT, typename VT>
+  size_t CSX_buf_size(CSX<IT, VT> * csx)
+  {
+      return CSX_buf_size<IT, VT>(csx->nrows, csx->ncols, csx->nnz, csx->majordim);
+  }
+
+
+  template<typename IT, typename VT>
+  void CSX_get_ptrs(IT nrows, IT ncols, IT nnz, char * buf,
+                    IT ** ptr_vec, IT ** idx_vec, VT ** val_vec)
+  {
+      assert(sizeof(IT) == sizeof(VT));
+      size_t offset = 0;
+      *val_vec = (VT*)buf;
+      offset += sizeof(VT) * nnz;
+      *idx_vec = (IT*)(buf + offset);
+      offset += sizeof(IT) * nnz;
+      *ptr_vec = (IT*)(buf + offset);
+  }
+
+
+  template<typename IT, typename VT>
   CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim) {
     CSX<IT, VT> *csx = (CSX<IT, VT> *)malloc(sizeof(CSX<IT, VT>));
     csx->majordim = majordim;
@@ -245,6 +290,9 @@ namespace mmio {
     csx->ncols    = ncols;
     csx->nnz      = nnz;
     csx->idx_vec  = (IT *)malloc(nnz * sizeof(IT));
+    csx->contig = false;
+    csx->buf = nullptr;
+    csx->buf_size = 0;
 
     if (majordim == MajorDim::ROWS)
       csx->ptr_vec = (IT *)malloc((nrows + 1) * sizeof(IT));
@@ -259,6 +307,27 @@ namespace mmio {
     return csx;
   }
 
+
+  template<typename IT, typename VT>
+  CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim) {
+
+    CSX<IT, VT> *csx = (CSX<IT, VT> *)malloc(sizeof(CSX<IT, VT>));
+    csx->majordim = majordim;
+    csx->nrows    = nrows;
+    csx->ncols    = ncols;
+    csx->nnz      = nnz;
+    csx->contig   = true;
+
+    csx->buf_size = CSX_buf_size<IT, VT>(nrows, ncols, nnz, majordim);
+    csx->buf = (char *)malloc(csx->buf_size);
+
+    CSX_get_ptrs(nrows, ncols, nnz, csx->buf, 
+                 &(csx->ptr_vec), &(csx->idx_vec), &(csx->val));
+
+    return csx;
+  }
+
+
   template<typename IT, typename VT>
   CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT *ptr_vec, IT *idx_vec, VT *val_vec) {
     mmio::CSX<IT, VT> *csx = (mmio::CSX<IT, VT>*)malloc(sizeof(mmio::CSX<IT, VT>));
@@ -266,6 +335,9 @@ namespace mmio {
     csx->nrows    = nrows;
     csx->ncols    = ncols;
     csx->nnz      = nnz;
+    csx->contig = false;
+    csx->buf = nullptr;
+    csx->buf_size = 0;
 
     csx->ptr_vec = ptr_vec;
     csx->idx_vec = idx_vec;
@@ -273,6 +345,7 @@ namespace mmio {
 
     return(csx);
   }
+
 
   template<typename IT, typename VT>
   CSX<IT, VT>* CSR2CSX(CSR<IT, VT> * csr) {
@@ -328,17 +401,23 @@ namespace mmio {
   template<typename IT, typename VT>
   void CSX_destroy(CSX<IT, VT> **csx) {
     if (*csx != NULL) {
-      if ((*csx)->ptr_vec != NULL) {
-        free((*csx)->ptr_vec);
-        (*csx)->ptr_vec = NULL;
-      }
-      if ((*csx)->idx_vec != NULL) {
-        free((*csx)->idx_vec);
-        (*csx)->idx_vec = NULL;
-      }
-      if ((*csx)->val != NULL) {
-        free((*csx)->val);
-        (*csx)->val = NULL;
+
+      if ((*csx)->contig) {
+        free((*csx)->buf);
+        (*csx)->buf = NULL;
+      } else {
+        if ((*csx)->ptr_vec != NULL) {
+          free((*csx)->ptr_vec);
+          (*csx)->ptr_vec = NULL;
+        }
+        if ((*csx)->idx_vec != NULL) {
+          free((*csx)->idx_vec);
+          (*csx)->idx_vec = NULL;
+        }
+        if ((*csx)->val != NULL) {
+          free((*csx)->val);
+          (*csx)->val = NULL;
+        }
       }
       free(*csx);
       *csx = NULL;

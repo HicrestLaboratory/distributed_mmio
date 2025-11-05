@@ -71,9 +71,12 @@ namespace mmio {
   template<typename IT, typename VT>
   struct CSX {
     MajorDim majordim;
+    bool contig;
     IT 	nrows;
     IT 	ncols;
     IT 	nnz;
+    size_t buf_size;
+    char * buf;
     IT 	*ptr_vec;
     IT 	*idx_vec;
     VT 	*val;
@@ -150,7 +153,20 @@ namespace mmio {
 
   /** CSX **/
   template<typename IT, typename VT>
+  size_t CSX_buf_size(IT nrows, IT ncols, IT nnz, MajorDim majordim);
+
+  template<typename IT, typename VT>
+  size_t CSX_buf_size(CSX<IT, VT> * csx);
+
+  template<typename IT, typename VT>
+  void CSX_get_ptrs(IT nrows, IT ncols, IT nnz, char * buf,
+                    IT ** ptr_vec, IT ** idx_vec, VT ** val_vec);
+
+  template<typename IT, typename VT>
   CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim);
+
+  template<typename IT, typename VT>
+  CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim);
 
   template<typename IT, typename VT>
   CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT *ptr_vec, IT *idx_vec, VT *val_vec);
