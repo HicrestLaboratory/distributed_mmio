@@ -77,6 +77,9 @@ namespace dmmio {
     mmio::COO<IT, VT> *coo;
   };
 
+  Partitioning* Partitioning_create(int matrix_rows, int matrix_cols, int grid_rows, int grid_cols, int grid_node_size, PartitioningType partitioning_type, Operation operation);
+  void Partitioning_destroy(Partitioning **partitioning);
+
   // -------- Public API functions --------
   
   template <typename IT, typename VT>
@@ -87,7 +90,8 @@ namespace dmmio {
     PartitioningType part_type,
     Operation op = Operation::None,
     bool expl_val_for_bin_mtx = false,
-    mmio::Matrix_Metadata* meta = nullptr
+    mmio::Matrix_Metadata* meta = nullptr,
+    int padding=1
   );
 
   template <typename IT, typename VT>
@@ -99,7 +103,8 @@ namespace dmmio {
     Operation op = Operation::None,
     bool is_bmtx = false,
     bool expl_val_for_bin_mtx = false,
-    mmio::Matrix_Metadata* meta = nullptr
+    mmio::Matrix_Metadata* meta = nullptr,
+    int padding=1
   );
 
   template<typename IT, typename VT>

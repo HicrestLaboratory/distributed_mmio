@@ -22,8 +22,8 @@ template<typename IT, typename VT> using DCOO = dmmio::DCOO<IT, VT>;
 template<typename IT, typename VT> using COO = mmio::COO<IT, VT>;
 
 #define DMMIO_DSTRUCTS_EXPLICIT_TEMPLATE_INST(IT, VT) \
-  template DCOO<IT, VT>* dmmio::DCOO_read(const char *filename, int mpi_comm_size, int rank, int grid_rows, int grid_cols, int grid_node_size, PartitioningType partitioning_type, Operation op, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
-  template DCOO<IT, VT>* dmmio::DCOO_read_f(FILE* f, int comm_size, int rank, int grid_rows, int grid_cols, int grid_node_size, PartitioningType part_type, Operation op, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta); \
+  template DCOO<IT, VT>* dmmio::DCOO_read(const char *filename, int mpi_comm_size, int rank, int grid_rows, int grid_cols, int grid_node_size, PartitioningType partitioning_type, Operation op, bool expl_val_for_bin_mtx, Matrix_Metadata* meta, int padding); \
+  template DCOO<IT, VT>* dmmio::DCOO_read_f(FILE* f, int comm_size, int rank, int grid_rows, int grid_cols, int grid_node_size, PartitioningType part_type, Operation op, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta, int padding); \
   template void dmmio::DCOO_destroy(DCOO<IT, VT>** dcoo);
 
 
@@ -84,14 +84,15 @@ namespace dmmio {
     int mpi_comm_size, int rank,
     int grid_rows, int grid_cols, int grid_node_size,
     PartitioningType partitioning_type, Operation op,
-    bool expl_val_for_bin_mtx, Matrix_Metadata* meta
+    bool expl_val_for_bin_mtx, Matrix_Metadata* meta,
+    int padding
   ) {
     return DCOO_read_f<IT, VT>(
       mmio::io::open_file_r(filename),
       mpi_comm_size, rank,
       grid_rows, grid_cols, grid_node_size,
       partitioning_type, op,
-      mmio::io::mm_is_file_extension_bmtx(std::string(filename)), expl_val_for_bin_mtx, meta
+      mmio::io::mm_is_file_extension_bmtx(std::string(filename)), expl_val_for_bin_mtx, meta, padding
     );
   }
 
@@ -101,11 +102,26 @@ namespace dmmio {
     int mpi_comm_size, int rank,
     int grid_rows, int grid_cols, int grid_node_size,
     PartitioningType partitioning_type, Operation op,
-    bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta
-  ) {
+    bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta,
+    int padding) {
     IT nrows, ncols, local_nnz;
     MM_typecode matcode;
     Entry<IT, VT> *entries = dmmio::io::mm_parse_file_distributed<IT, VT>(f, rank, mpi_comm_size, nrows, ncols, local_nnz, &matcode, is_bmtx, meta);
+
+
+    // Do padding
+    while (nrows % (grid_rows * grid_node_size * padding) != 0 && 
+            nrows % (grid_cols * padding))
+    {
+        nrows++;
+    }
+
+    while (ncols % (grid_rows * grid_node_size * padding) != 0 && 
+            ncols % (grid_cols * padding))
+    {
+        ncols++;
+    }
+
     if (entries == NULL) return NULL;
     Partitioning *partitioning = Partitioning_create(nrows, ncols, grid_rows, grid_cols, grid_node_size, partitioning_type, op);
     DCOO<IT, VT> *dcoo = (DCOO<IT, VT>*)malloc(sizeof(DCOO<IT, VT>));
