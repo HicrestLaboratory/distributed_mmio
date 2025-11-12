@@ -2,6 +2,8 @@
 #include <mpi.h>
 #include <vector>
 #include <algorithm>
+#include <iostream>
+#include <cassert>
 #include <ccutils/colors.h>
 #include <ccutils/macros.h>
 #include <ccutils/mpi/mpi_macros.h>
@@ -108,6 +110,8 @@ namespace dmmio {
     MM_typecode matcode;
     Entry<IT, VT> *entries = dmmio::io::mm_parse_file_distributed<IT, VT>(f, rank, mpi_comm_size, nrows, ncols, local_nnz, &matcode, is_bmtx, meta);
 
+    // For UINT32_T datatype in the Alltoallv
+    static_assert( (sizeof(Entry<IT, VT>) % sizeof(uint32_t) == 0 ));
 
     // Do padding
     while (nrows % (grid_rows * grid_node_size * padding) != 0 && 
@@ -163,7 +167,7 @@ namespace dmmio {
     int* displacements_recv = (int*)malloc(sizeof(int)*mpi_comm_size);
 
     for (int i=0; i<mpi_comm_size; i++) counts_send[i] = 0;
-    for (int i=0; i<local_nnz; i++) counts_send[owner[i]] += sizeof(Entry<IT, VT>);
+    for (int i=0; i<local_nnz; i++) counts_send[owner[i]] += sizeof(Entry<IT, VT>)/sizeof(uint32_t);
 
     displacements_send[0] = 0;
     for (int i=1; i<mpi_comm_size; i++) displacements_send[i] = displacements_send[i-1] + counts_send[i-1];
@@ -172,7 +176,7 @@ namespace dmmio {
 
     displacements_recv[0] = 0;
     for (int i = 1; i < mpi_comm_size; i++) displacements_recv[i] = displacements_recv[i-1] + counts_recv[i-1];
-    int total_recv = (displacements_recv[mpi_comm_size-1] + counts_recv[mpi_comm_size-1]) / sizeof(Entry<IT, VT>);
+    int total_recv = (displacements_recv[mpi_comm_size-1] + counts_recv[mpi_comm_size-1]) / (sizeof(Entry<IT, VT>)/sizeof(uint32_t));
     Entry<IT, VT>* recv_entries = (Entry<IT, VT>*)malloc(total_recv * sizeof(Entry<IT, VT>));
 
   // #define DEBUG_ALLTOALLV
@@ -214,12 +218,17 @@ namespace dmmio {
     MPI_Alltoallv(sorted_entries,
                   counts_send,
                   displacements_send,
-                  MPI_BYTE,
+                  MPI_UINT32_T,
                   recv_entries,
                   counts_recv,
                   displacements_recv,
-                  MPI_BYTE,
+                  MPI_UINT32_T,
                   MPI_COMM_WORLD);
+
+    free(counts_send);
+    free(counts_recv);
+    free(displacements_send);
+    free(displacements_recv);
 
     // TODO keep track of global and local matrix dimensions PROPERLY
     COO<IT, VT> *coo = mmio::COO_create<IT, VT>(nrows, ncols, total_recv, expl_val_for_bin_mtx || !meta->is_pattern);
