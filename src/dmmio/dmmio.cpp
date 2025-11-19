@@ -114,17 +114,21 @@ namespace dmmio {
     static_assert( (sizeof(Entry<IT, VT>) % sizeof(uint32_t) == 0 ));
 
     // Do padding
+    int padded_rows = 0, padded_cols = 0;
     while (nrows % (grid_rows * grid_node_size * padding) != 0 && 
             nrows % (grid_cols * padding))
     {
+	padded_rows++;
         nrows++;
     }
 
     while (ncols % (grid_rows * grid_node_size * padding) != 0 && 
             ncols % (grid_cols * padding))
     {
+	padded_cols++;
         ncols++;
     }
+    if (rank == 0) fprintf(stdout, "padded_rows: %d, padded_cols: %d\n", padded_rows, padded_cols);
 
     if (entries == NULL) return NULL;
     Partitioning *partitioning = Partitioning_create(nrows, ncols, grid_rows, grid_cols, grid_node_size, partitioning_type, op);
