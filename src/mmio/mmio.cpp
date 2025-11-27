@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <string>
 #include <unistd.h>
+#include <cuda_runtime.h>
 
 #include "../../include/mmio/mmio.h"
 #include "../../include/mmio/io.h"
@@ -26,7 +27,7 @@ template<typename IT, typename VT> using CSX   = mmio::CSX<IT, VT>;
   template void mmio::CSX_get_ptrs(IT nrows, IT ncols, IT nnz, char * buf, IT ** ptr_vec, IT ** idx_vec, VT ** val_vec); \
   template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim); \
   template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT *ptr_vec, IT *idx_vec, VT *val_vec); \
-  template CSX<IT, VT>* mmio::CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim); \
+  template CSX<IT, VT>* mmio::CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim, bool device_alloc); \
   template COO<IT, VT>* mmio::COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSR<IT, VT>* mmio::CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSC<IT, VT>* mmio::CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
