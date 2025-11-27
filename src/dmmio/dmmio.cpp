@@ -251,6 +251,14 @@ namespace dmmio {
     // }
   }
 
+  template<typename IT, typename VT>
+  DDENSE<IT, VT>* dcoo2ddense(DCOO<IT, VT>* dcoo) {
+    DDENSE<IT,VT> *dense;
+    dense->partitioning = dcoo->partitioning;
+    dense->mat = coo2dense(dcoo->coo);
+    return(dense);
+  };
+
 } // namespace dmmio
 
 DMMIO_DSTRUCTS_EXPLICIT_TEMPLATE_INST(uint32_t, float)

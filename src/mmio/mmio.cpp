@@ -309,7 +309,7 @@ namespace mmio {
 
 
   template<typename IT, typename VT>
-  CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim) {
+  CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim, bool device_alloc) {
 
     CSX<IT, VT> *csx = (CSX<IT, VT> *)malloc(sizeof(CSX<IT, VT>));
     csx->majordim = majordim;
@@ -319,7 +319,13 @@ namespace mmio {
     csx->contig   = true;
 
     csx->buf_size = CSX_buf_size<IT, VT>(nrows, ncols, nnz, majordim);
-    csx->buf = (char *)malloc(csx->buf_size);
+
+    if (device_alloc) {
+      csx->buf = (char *)malloc(csx->buf_size);
+      cudaMalloc(&(csx->buf), csx->buf_size);
+    } else {
+      csx->buf = (char *)malloc(csx->buf_size);
+    }
 
     CSX_get_ptrs(nrows, ncols, nnz, csx->buf, 
                  &(csx->ptr_vec), &(csx->idx_vec), &(csx->val));
