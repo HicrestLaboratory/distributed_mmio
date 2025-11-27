@@ -114,14 +114,14 @@ namespace dmmio {
     static_assert( (sizeof(Entry<IT, VT>) % sizeof(uint32_t) == 0 ));
 
     // Do padding
-    while (nrows % (grid_rows * grid_node_size * padding) != 0 && 
-            nrows % (grid_cols * padding))
+    while (nrows % (grid_rows * grid_node_size * padding) != 0 ||
+            (nrows % (grid_cols * padding) != 0))
     {
         nrows++;
     }
 
-    while (ncols % (grid_rows * grid_node_size * padding) != 0 && 
-            ncols % (grid_cols * padding))
+    while (ncols % (grid_rows * grid_node_size * padding) != 0 ||
+            (ncols % (grid_cols * padding) != 0))
     {
         ncols++;
     }
