@@ -116,6 +116,19 @@ namespace dmmio {
   template<typename IT, typename VT>
   void DCOO_destroy(DCOO<IT, VT>** dcoo);
 
+  /** Distributed DENSE container */
+  template <typename IT, typename VT>
+  struct DDENSE {
+    Partitioning *partitioning;
+    mmio::DENSE<IT, VT> *mat;
+  };
+
+  template<typename IT, typename VT>
+  DDENSE<IT, VT>* dcoo2ddense(DCOO<IT, VT>* dcoo);
+
+  template<typename IT, typename VT>
+  void DDENSE_destroy(DDENSE<IT, VT>** dcoo);
+
   void Partitioning_destroy(Partitioning **partitioning);
 
 } // namespace dmmio

@@ -76,6 +76,10 @@ namespace dmmio::io {
     MPI_Comm_rank(grid->node_comm, &(grid->node_rank));
     MPI_Comm_size(grid->node_comm, &(grid->node_size));
 
+    MPI_Comm_set_name(grid->row_comm,  "COMMROW");
+    MPI_Comm_set_name(grid->col_comm,  "COMMCOL");
+    MPI_Comm_set_name(grid->node_comm, "COMMNODE");
+
     // if (grid->row_size != row_size)  MPI_Abort(MPI_COMM_WORLD, __LINE__);
     // if (grid->col_size != col_size)  MPI_Abort(MPI_COMM_WORLD, __LINE__);
     // if (grid->node_size != node_size) MPI_Abort(MPI_COMM_WORLD, __LINE__);

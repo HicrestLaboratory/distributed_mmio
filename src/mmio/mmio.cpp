@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <string>
 #include <unistd.h>
+#include <cuda_runtime.h>
 
 #include "../../include/mmio/mmio.h"
 #include "../../include/mmio/io.h"
@@ -28,7 +29,7 @@ template<typename IT, typename VT> using CSX   = mmio::CSX<IT, VT>;
   template void mmio::CSX_get_ptrs(IT nrows, IT ncols, IT nnz, char * buf, IT ** ptr_vec, IT ** idx_vec, VT ** val_vec); \
   template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim); \
   template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT *ptr_vec, IT *idx_vec, VT *val_vec); \
-  template CSX<IT, VT>* mmio::CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim); \
+  template CSX<IT, VT>* mmio::CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim, bool device_alloc); \
   template COO<IT, VT>* mmio::COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSR<IT, VT>* mmio::CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSC<IT, VT>* mmio::CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
@@ -312,7 +313,7 @@ namespace mmio {
 
 
   template<typename IT, typename VT>
-  CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim) {
+  CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim, bool device_alloc) {
 
     CSX<IT, VT> *csx = (CSX<IT, VT> *)malloc(sizeof(CSX<IT, VT>));
     csx->majordim = majordim;
@@ -322,7 +323,13 @@ namespace mmio {
     csx->contig   = true;
 
     csx->buf_size = CSX_buf_size<IT, VT>(nrows, ncols, nnz, majordim);
-    csx->buf = (char *)malloc(csx->buf_size);
+
+    if (device_alloc) {
+      csx->buf = (char *)malloc(csx->buf_size);
+      cudaMalloc(&(csx->buf), csx->buf_size);
+    } else {
+      csx->buf = (char *)malloc(csx->buf_size);
+    }
 
     CSX_get_ptrs(nrows, ncols, nnz, csx->buf, 
                  &(csx->ptr_vec), &(csx->idx_vec), &(csx->val));
