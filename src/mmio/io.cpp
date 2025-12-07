@@ -443,7 +443,6 @@ namespace mmio::io {
 
     // Write binary data
     for (IT i = 0; i < coo->nnz; ++i) {
-      //if (meta->is_symmetric && coo->row[i] > coo->col[i]) continue; // For patter matrices
 
       // Write row
       switch (index_bytes) {
