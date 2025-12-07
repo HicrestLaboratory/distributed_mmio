@@ -33,6 +33,14 @@ namespace mmio {
     bool is_pattern;
   };
 
+
+  template<typename IT, typename VT>
+  struct Triple {
+    IT row;
+    IT col;
+    VT val;
+  };
+
   template<typename IT, typename VT>
   struct COO {
     IT nrows;
@@ -179,6 +187,9 @@ namespace mmio {
 
   template<typename IT, typename VT>
   COO<IT, VT>* CSX2COO(CSX<IT, VT> * csx);
+
+  template<typename IT, typename VT>
+  CSR<IT, VT>* COO2CSR(COO<IT, VT> * coo);
 
   template<typename IT, typename VT>
   void CSX_destroy(CSX<IT, VT>** csx);
