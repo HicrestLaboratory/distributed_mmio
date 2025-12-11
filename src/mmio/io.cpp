@@ -10,7 +10,7 @@
 #include <cstdint>
 
 #include <ccutils/colors.h>
-#include <ccutils/macros.h>
+#include <ccutils/macros.hpp>
 
 #include "../../include/mmio/macros.h"
 #include "../../include/mmio/mmio.h"

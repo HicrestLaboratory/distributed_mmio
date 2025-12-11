@@ -4,7 +4,7 @@
 #include <string.h>
 #include <mpi.h>
 #include <ccutils/colors.h>
-#include <ccutils/macros.h>
+#include <ccutils/macros.hpp>
 
 #include "../../include/mmio/io.h"
 #include "../../include/dmmio/dio.h"
@@ -27,10 +27,10 @@ template<typename IT, typename VT> using CSR = mmio::CSR<IT, VT>;
 namespace dmmio::io {
 
   ProcessGrid *ProcessGrid_create(int row_size, int col_size, int node_size) {
-    ASSERT(row_size > 0, "row_size must be > 0");
-    ASSERT(col_size > 0, "col_size must be > 0");
-    ASSERT(node_size > 0, "node_size must be > 0");
-    ASSERT(row_size == col_size, "Currently only square grids are supported");
+    CCUTILS_ASSERT(row_size > 0, "row_size must be > 0");
+    CCUTILS_ASSERT(col_size > 0, "col_size must be > 0");
+    CCUTILS_ASSERT(node_size > 0, "node_size must be > 0");
+    CCUTILS_ASSERT(row_size == col_size, "Currently only square grids are supported");
 
     ProcessGrid *grid = (ProcessGrid*)malloc(sizeof(ProcessGrid));
 
@@ -42,7 +42,7 @@ namespace dmmio::io {
     MPI_Comm_size(MPI_COMM_WORLD, &(grid->global_size));
     grid->world_comm = MPI_COMM_WORLD;
 
-    ASSERT((grid->global_size % (row_size*col_size) == 0), "Total number of processes must be a multiple of row_size * col_size");
+    CCUTILS_ASSERT((grid->global_size % (row_size*col_size) == 0), "Total number of processes must be a multiple of row_size * col_size");
 
     // Compute 3D coordinates from linear rank
     int i = grid->global_rank / (col_size * node_size);      // row index
@@ -140,7 +140,7 @@ namespace dmmio::io {
   }
 
   void set_partitioning_transpose(Partitioning *self, Operation op) {
-    // ASSERT((op=='l')||(op=='r'), "Error in function %s, op must be 'l' (left) or 'r' (right).", __func__);
+    // CCUTILS_ASSERT((op=='l')||(op=='r'), "Error in function %s, op must be 'l' (left) or 'r' (right).", __func__);
     self->op = op;
   }
 
@@ -161,9 +161,9 @@ namespace dmmio::io {
   }
 
   void set_partitioning_group_dim (Partitioning *self) {
-    ASSERT((self->grid!=NULL), "%s call before self->grid set\n", __func__);
+    CCUTILS_ASSERT((self->grid!=NULL), "%s call before self->grid set\n", __func__);
 
-    ASSERT(((self->global_rows!=0)&&(self->global_cols!=0)), \
+    CCUTILS_ASSERT(((self->global_rows!=0)&&(self->global_cols!=0)), \
       "%s call before matrix dim are set:\n\tglobal_rows: %lu\n\tglobal_cols: %lu\n", \
       __func__, self->global_rows, self->global_cols);
 
@@ -172,13 +172,13 @@ namespace dmmio::io {
   }
 
   void set_partitioning_local_dim (Partitioning *self) {
-    ASSERT((self->grid!=NULL), "%s call before self->grid set\n", __func__);
+    CCUTILS_ASSERT((self->grid!=NULL), "%s call before self->grid set\n", __func__);
 
-    ASSERT(((self->global_rows!=0)&&(self->global_cols!=0)), \
+    CCUTILS_ASSERT(((self->global_rows!=0)&&(self->global_cols!=0)), \
       "%s call before matrix dim are set:\n\tglobal_rows: %lu\n\tglobal_cols: %lu\n", \
       __func__, self->global_rows, self->global_cols);
 
-    ASSERT(((self->group_rows!=0)&&(self->group_cols!=0)), \
+    CCUTILS_ASSERT(((self->group_rows!=0)&&(self->group_cols!=0)), \
       "%s call before matrix dim are set:\n\tgroup_rows: %lu\n\tgroup_cols: %lu\n", \
       __func__, self->group_rows, self->group_cols);
 
@@ -195,13 +195,13 @@ namespace dmmio::io {
   }
 
   void set_partitioning_functions (Partitioning *self) {
-    ASSERT((self->grid!=NULL), "%s call before self->grid set\n", __func__);
+    CCUTILS_ASSERT((self->grid!=NULL), "%s call before self->grid set\n", __func__);
 
-    ASSERT(((self->global_rows!=0)&&(self->global_cols!=0)), \
+    CCUTILS_ASSERT(((self->global_rows!=0)&&(self->global_cols!=0)), \
       "%s call before matrix dim are set:\n\tglobal_rows: %lu\n\tglobal_cols: %lu\n", \
       __func__, self->global_rows, self->global_cols);
 
-    ASSERT(((self->group_rows!=0)&&(self->group_cols!=0)), \
+    CCUTILS_ASSERT(((self->group_rows!=0)&&(self->group_cols!=0)), \
       "%s call before group matrix dim are set:\n\tgroup_rows: %lu\n\tgroup_cols: %lu\n", \
       __func__, self->group_rows, self->group_cols);
 
@@ -322,7 +322,7 @@ namespace dmmio::io {
     IT &nrows, IT &ncols, IT &local_nnz,
     MM_typecode *matcode, bool is_bmtx, Matrix_Metadata* meta
   ) {
-    ASSERT(is_bmtx, "Distributed read of non-binary MTX files is not supported yet") // TODO implement
+    CCUTILS_ASSERT(is_bmtx, "Distributed read of non-binary MTX files is not supported yet") // TODO implement
 
     IT nentries = 0, nnz_upperbound = 0;
     if (f == NULL) {

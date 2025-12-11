@@ -1,4 +1,4 @@
-#include <ccutils/macros.h>
+#include <ccutils/macros.hpp>
 
 #include "../../include/dmmio/partitioning.h"
 
@@ -105,8 +105,8 @@ namespace dmmio::partitioning {
         uint64_t m, uint64_t n,
         ProcessGrid * grid, int transpose
       ) {
-        ASSERT((n % grid->col_size == 0), "pc %d does not divide n %lu\n", grid->col_size, n); // Process grid must evenly divide matrix dims
-        ASSERT((m % (grid->row_size * grid->node_size) == 0), "pr*pz %d does not divide m %lu\n", grid->node_size * grid->node_size, m);
+        CCUTILS_ASSERT((n % grid->col_size == 0), "pc %d does not divide n %lu\n", grid->col_size, n); // Process grid must evenly divide matrix dims
+        CCUTILS_ASSERT((m % (grid->row_size * grid->node_size) == 0), "pr*pz %d does not divide m %lu\n", grid->node_size * grid->node_size, m);
 
         int rpg = m / grid->row_size;
         int cpg = n / grid->col_size;
@@ -125,7 +125,7 @@ namespace dmmio::partitioning {
         FLUSH_WAIT(500000);
       #endif
 
-        ASSERT((pid < grid->global_size), "pid is %d, must be < %d\n", pid, grid->global_size);
+        CCUTILS_ASSERT((pid < grid->global_size), "pid is %d, must be < %d\n", pid, grid->global_size);
 
         return pid;
       }
@@ -134,14 +134,14 @@ namespace dmmio::partitioning {
     // Functions from edge to process
     uint64_t groupowner (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) { // Previous name: edge2group
       #ifndef SKIP_SETPARTFUNC_ASSERT
-        ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
+        CCUTILS_ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
       #endif
         return( self->edge2group(glob_row_id, glob_col_id, self->global_rows, self->global_cols, (self->grid)->col_size, (self->grid)->row_size) );
       }
 
       uint64_t internodeidowner (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) { // Previous name: edge2node
       #ifndef SKIP_SETPARTFUNC_ASSERT
-        ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
+        CCUTILS_ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
       #endif
         // uint64_t idxtosplit = (self->op=='l') ? (globalrow2grouprow(self, glob_row_id)) : (globalcol2groupcol(self, glob_col_id)) ;
         // uint64_t dimtosplit = (self->op=='l') ? self->group_rows : self->group_cols ;
@@ -216,14 +216,14 @@ namespace dmmio::partitioning {
         // Function from upper index to inner index
         uint64_t col (Partitioning *self, uint64_t glob_col_id) { // Previous name: globalcol2groupcol
         #ifndef SKIP_SETPARTFUNC_ASSERT
-          ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
+          CCUTILS_ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
         #endif
           return( self->globalcol2groupcol(glob_col_id, self->global_cols, (self->grid)->col_size) );
         }
 
         uint64_t row (Partitioning *self, uint64_t glob_row_id) { // Previous name: globalrow2grouprow
         #ifndef SKIP_SETPARTFUNC_ASSERT
-          ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
+          CCUTILS_ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
         #endif
           return( self->globalrow2grouprow(glob_row_id, self->global_rows, (self->grid)->row_size) );
         }
@@ -232,7 +232,7 @@ namespace dmmio::partitioning {
     namespace group2local {
       uint64_t col (Partitioning *self, uint64_t grp_col_id) { // Previous name: groupcol2localcol
       #ifndef SKIP_SETPARTFUNC_ASSERT
-        ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
+        CCUTILS_ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
       #endif
       //     int ncolsplit = (self->op=='l') ? 1 : ((self->grid)->pz) ;
         int ncolsplit = 1; // BUG, tmp fix
@@ -241,7 +241,7 @@ namespace dmmio::partitioning {
 
       uint64_t row (Partitioning *self, uint64_t grp_row_id) { // Previous name: grouprow2localrow
       #ifndef SKIP_SETPARTFUNC_ASSERT
-        ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
+        CCUTILS_ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
       #endif
         // int nrowsplit = (self->op=='l') ? ((self->grid)->pz) : 1 ;
         int nrowsplit = ((self->grid)->node_size); // BUG, tmp fix

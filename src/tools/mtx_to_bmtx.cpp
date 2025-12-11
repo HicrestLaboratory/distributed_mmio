@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <ccutils/colors.h>
-#include <ccutils/timers.h>
+#include <ccutils/timers.hpp>
 
 #include <mmio/mmio.h>
 #include <mmio/io.h>
@@ -36,9 +36,9 @@ int main(int argc, char const *argv[]) {
 
   Matrix_Metadata mtx_meta;
   mtx_meta.value_bytes = double_val ? 8 : 4;
-  CPU_TIMER_INIT(COO_read)
+  CCUTILS_CPU_TIMER_INIT(COO_read)
   COO<uint64_t, double> *coo = COO_read<uint64_t, double>(filename.c_str(), false, &mtx_meta);
-  CPU_TIMER_CLOSE(COO_read)
+  CCUTILS_CPU_TIMER_CLOSE(COO_read)
   if (coo == NULL) {
     fprintf(stderr, "Something went wrong\n");
     exit(EXIT_FAILURE);
@@ -55,7 +55,7 @@ int main(int argc, char const *argv[]) {
   // DMMIO_print_COO(coo);
   // if (!converting_to_bmtx) exit(0);
 
-  CPU_TIMER_INIT(Conversion)
+  CCUTILS_CPU_TIMER_INIT(Conversion)
   if (converting_to_bmtx) {
     printf("Converting MTX file to BMTX...\n");
     out_filename += ".bmtx";
@@ -67,7 +67,7 @@ int main(int argc, char const *argv[]) {
     COO_write(coo, out_filename.c_str(), false, &mtx_meta);
     printf("MTX file written to %s\n", out_filename.c_str());
   }
-  CPU_TIMER_CLOSE(Conversion)
+  CCUTILS_CPU_TIMER_CLOSE(Conversion)
 
   COO_destroy(&coo);
 

@@ -8,14 +8,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 ### CCUTILS dependency ###
-set(CCUTILS_ENABLE_MPI  ON  CACHE BOOL "")
-include(FetchContent)
-FetchContent_Declare(
-    ccutils
-    GIT_REPOSITORY https://github.com/ThomasPasquali/ccutils.git
-    GIT_TAG        main
-)
-FetchContent_MakeAvailable(ccutils)
+set(CCUTILS_ENABLE_CUDA OFF)
+set(CCUTILS_ENABLE_MPI  OFF)
+if(DMMIO_ENABLE_MPI)
+    set(CCUTILS_ENABLE_MPI ON)
+endif()
+find_package(ccutils REQUIRED)
 
 ### Distributed MMIO library ###
 add_library(dmmio STATIC 

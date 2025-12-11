@@ -5,8 +5,8 @@
 #include <iostream>
 #include <cassert>
 #include <ccutils/colors.h>
-#include <ccutils/macros.h>
-#include <ccutils/mpi/mpi_macros.h>
+#include <ccutils/macros.hpp>
+#include <ccutils/mpi/mpi_macros.hpp>
 
 #include "../../include/mmio/mmio.h"
 #include "../../include/mmio/io.h"
