@@ -33,6 +33,14 @@ namespace mmio {
     bool is_pattern;
   };
 
+
+  template<typename IT, typename VT>
+  struct Triple {
+    IT row;
+    IT col;
+    VT val;
+  };
+
   template<typename IT, typename VT>
   struct COO {
     IT nrows;
@@ -166,7 +174,7 @@ namespace mmio {
   CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim);
 
   template<typename IT, typename VT>
-  CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim);
+  CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim, bool device_alloc=false);
 
   template<typename IT, typename VT>
   CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT *ptr_vec, IT *idx_vec, VT *val_vec);
@@ -179,6 +187,9 @@ namespace mmio {
 
   template<typename IT, typename VT>
   COO<IT, VT>* CSX2COO(CSX<IT, VT> * csx);
+
+  template<typename IT, typename VT>
+  CSR<IT, VT>* COO2CSR(COO<IT, VT> * coo);
 
   template<typename IT, typename VT>
   void CSX_destroy(CSX<IT, VT>** csx);

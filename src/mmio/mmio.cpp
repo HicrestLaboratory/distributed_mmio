@@ -5,9 +5,12 @@
 #include <cstring>
 #include <cstdlib>
 #include <cassert>
+#include <vector>
+#include <numeric>
 #include <algorithm>
 #include <string>
 #include <unistd.h>
+#include <cuda_runtime.h>
 
 #include "../../include/mmio/mmio.h"
 #include "../../include/mmio/io.h"
@@ -26,7 +29,7 @@ template<typename IT, typename VT> using CSX   = mmio::CSX<IT, VT>;
   template void mmio::CSX_get_ptrs(IT nrows, IT ncols, IT nnz, char * buf, IT ** ptr_vec, IT ** idx_vec, VT ** val_vec); \
   template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim); \
   template CSX<IT, VT>* mmio::CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT *ptr_vec, IT *idx_vec, VT *val_vec); \
-  template CSX<IT, VT>* mmio::CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim); \
+  template CSX<IT, VT>* mmio::CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim, bool device_alloc); \
   template COO<IT, VT>* mmio::COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSR<IT, VT>* mmio::CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
   template CSC<IT, VT>* mmio::CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val); \
@@ -44,6 +47,7 @@ template<typename IT, typename VT> using CSX   = mmio::CSX<IT, VT>;
   template CSX<IT, VT>*  mmio::CSR2CSX(CSR<IT, VT> * csr);                \
   template CSX<IT, VT>*  mmio::CSC2CSX(CSC<IT, VT> * csc);                \
   template COO<IT, VT>*  mmio::CSX2COO(CSX<IT, VT> * csx);                       \
+  template CSR<IT, VT>*  mmio::COO2CSR(COO<IT, VT> * coo);                       \
   template DENSE<IT,VT>* mmio::coo2dense(COO<IT, VT>* coo);               \
   template DENSE<IT,VT>* mmio::csr2dense(const CSR<IT,VT>* csr);          \
   template DENSE<IT,VT>* mmio::matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B);
@@ -309,7 +313,7 @@ namespace mmio {
 
 
   template<typename IT, typename VT>
-  CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim) {
+  CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim, bool device_alloc) {
 
     CSX<IT, VT> *csx = (CSX<IT, VT> *)malloc(sizeof(CSX<IT, VT>));
     csx->majordim = majordim;
@@ -319,7 +323,13 @@ namespace mmio {
     csx->contig   = true;
 
     csx->buf_size = CSX_buf_size<IT, VT>(nrows, ncols, nnz, majordim);
-    csx->buf = (char *)malloc(csx->buf_size);
+
+    if (device_alloc) {
+      csx->buf = (char *)malloc(csx->buf_size);
+      cudaMalloc(&(csx->buf), csx->buf_size);
+    } else {
+      csx->buf = (char *)malloc(csx->buf_size);
+    }
 
     CSX_get_ptrs(nrows, ncols, nnz, csx->buf, 
                  &(csx->ptr_vec), &(csx->idx_vec), &(csx->val));
@@ -397,6 +407,71 @@ namespace mmio {
 
     return(coo);
   }
+
+
+  template<typename IT, typename VT>
+  CSR<IT, VT> * COO2CSR(COO<IT, VT> * coo) {
+    CSR<IT, VT> * csr = CSR_create<IT, VT>(coo->nrows, coo->ncols, coo->nnz, true);
+
+    using Tr = Triple<IT, VT>;
+    std::vector<Tr> triples(coo->nnz);
+
+    for (IT i=0; i<coo->nnz; i++)
+    {
+        triples[i].row = coo->row[i];
+        triples[i].col = coo->col[i];
+        triples[i].val = coo->val[i];
+    }
+
+
+    std::sort(triples.begin(), triples.end(),
+        [](auto& t1, auto& t2)
+        {
+            return t1.row < t2.row;
+        }
+    );
+
+
+    // First convert the local COO representation to a CSR representation 
+    std::vector<IT> rowptrs(coo->nrows + 1, 0);
+    std::for_each(triples.begin(), triples.end(),
+        [&](auto& t)
+        {
+            rowptrs[t.row+1]++;
+        }
+    );
+
+    std::vector<IT> colinds(coo->nnz);
+    std::transform(triples.begin(), triples.end(),
+                   colinds.begin(),
+        [&](auto& t)
+        {
+            return t.col;
+        }
+    );
+
+    std::vector<VT> vals(coo->nnz);
+    std::transform(triples.begin(), triples.end(),
+                   vals.begin(),
+        [&](auto& t)
+        {
+            return t.val;
+        }
+    );
+
+
+    std::inclusive_scan(rowptrs.begin() + 1, rowptrs.end(), rowptrs.begin() + 1);
+
+
+    memcpy(csr->val, vals.data(), sizeof(VT) * coo->nnz);
+    memcpy(csr->col_idx, colinds.data(), sizeof(IT) * coo->nnz);
+    memcpy(csr->row_ptr, rowptrs.data(), sizeof(IT) * (coo->nrows + 1));
+
+
+    return csr;
+
+  }
+
 
   template<typename IT, typename VT>
   void CSX_destroy(CSX<IT, VT> **csx) {
