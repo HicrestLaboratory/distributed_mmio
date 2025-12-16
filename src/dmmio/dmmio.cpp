@@ -151,7 +151,9 @@ namespace dmmio {
     IT nrows, ncols, local_nnz;
     MM_typecode matcode;
     Entry<IT, VT> *entries = dmmio::io::mm_parse_file_distributed<IT, VT>(f, rank, mpi_comm_size, nrows, ncols, local_nnz, &matcode, is_bmtx, meta);
-
+    IT global_nrows = nrows;
+    IT global_ncols = ncols;
+      
     DCOO<IT, VT> *dcoo = (DCOO<IT, VT>*)malloc(sizeof(DCOO<IT, VT>));
     if (permute) {
 
@@ -307,10 +309,14 @@ namespace dmmio {
     free(displacements_send);
     free(displacements_recv);
 
-    // TODO keep track of global and local matrix dimensions PROPERLY
     COO<IT, VT> *coo = mmio::COO_create<IT, VT>(nrows, ncols, total_recv, expl_val_for_bin_mtx || !meta->is_pattern);
     mmio::io::Entries_to_COO<IT, VT>(recv_entries, coo);
+    dcoo->nrows = global_nrows;
+    dcoo->ncols = global_ncols;
     dcoo->coo = coo;
+    IT global_nnz;
+    MPI_Allreduce(&local_nnz, &global_nnz, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
+    dcoo->nnz = global_nnz;
 
     return dcoo;
   }

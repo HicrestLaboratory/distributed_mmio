@@ -75,6 +75,9 @@ namespace dmmio {
   struct DCOO {
     Partitioning *partitioning;
     mmio::COO<IT, VT> *coo;
+    IT nrows;
+    IT ncols;
+    IT nnz;
     IT * permutation;
     bool permuted;
   };
