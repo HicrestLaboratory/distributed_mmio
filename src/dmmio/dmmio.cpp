@@ -22,15 +22,18 @@ using Operation = dmmio::Operation;
 using PartitioningType = dmmio::PartitioningType;
 using Partitioning = dmmio::Partitioning;
 using ProcessGrid = dmmio::ProcessGrid;
+
 template<typename IT, typename VT> using Entry = mmio::io::Entry<IT, VT>;
 template<typename IT, typename VT> using DCOO = dmmio::DCOO<IT, VT>;
+template<typename IT, typename VT> using DCSR = dmmio::DCSR<IT, VT>;
 template<typename IT, typename VT> using COO = mmio::COO<IT, VT>;
 
 #define DMMIO_DSTRUCTS_EXPLICIT_TEMPLATE_INST(IT, VT) \
   template DCOO<IT, VT>* dmmio::DCOO_read(const char *filename, int mpi_comm_size, int rank, int grid_rows, int grid_cols, int grid_node_size, PartitioningType partitioning_type, Operation op, bool expl_val_for_bin_mtx, Matrix_Metadata* meta, int padding, bool permute, IT * perm_vec); \
   template DCOO<IT, VT>* dmmio::DCOO_read_f(FILE* f, int comm_size, int rank, int grid_rows, int grid_cols, int grid_node_size, PartitioningType part_type, Operation op, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta, int padding, bool permute, IT * perm_vec); \
-  template void dmmio::DCOO_destroy(DCOO<IT, VT>** dcoo);
-
+  template void dmmio::DCOO_destroy(DCOO<IT, VT>** dcoo); \
+  template void dmmio::DCSR_destroy(DCSR<IT, VT>** dcsr); \
+  template DCSR<IT, VT>* dmmio::DCOO2DCSR(DCOO<IT, VT>* dcoo);
 
 namespace dmmio {
 
@@ -338,12 +341,40 @@ namespace dmmio {
   }
 
   template<typename IT, typename VT>
+  void DCSR_destroy(DCSR<IT, VT>** dcsr) {
+    if ((*dcsr)->permuted && (*dcsr)->permutation != NULL) {
+        free((*dcsr)->permutation);
+    }
+    if (dcsr != NULL && *dcsr != NULL) {
+      mmio::CSR_destroy(&((*dcsr)->csr));
+      Partitioning_destroy(&((*dcsr)->partitioning));
+    }
+  }
+
+  template<typename IT, typename VT>
   DDENSE<IT, VT>* dcoo2ddense(DCOO<IT, VT>* dcoo) {
     DDENSE<IT,VT> *dense;
     dense->partitioning = dcoo->partitioning;
     dense->mat = coo2dense(dcoo->coo);
     return(dense);
   };
+
+  template <typename IT, typename VT>
+  DCSR<IT, VT>* DCOO2DCSR(DCOO<IT, VT>* dcoo) {
+    CCUTILS_ASSERT(dcoo->partitioning->grid->col_size == 1 || dcoo->partitioning->grid->row_size == 1, "DCOO_2_DCSR currently only supports 1D partitionings\n")
+    // TODO ensure partitioning maj dim is compatible with rows
+    DCSR<IT, VT>* dcsr = (DCSR<IT, VT>*)malloc(sizeof(DCSR<IT, VT>));
+    dcsr->nrows = dcoo->nrows;
+    dcsr->ncols = dcoo->ncols;
+    dcsr->nnz = dcoo->nnz;
+    // TODO deep copy partitioning
+    dcsr->partitioning = dcoo->partitioning;
+    // TODO handle permutations
+    
+    dcsr->csr = mmio::COO2CSR(dcoo->coo, false);
+
+    return dcsr;
+  }
 
 } // namespace dmmio
 

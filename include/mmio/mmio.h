@@ -189,7 +189,7 @@ namespace mmio {
   COO<IT, VT>* CSX2COO(CSX<IT, VT> * csx);
 
   template<typename IT, typename VT>
-  CSR<IT, VT>* COO2CSR(COO<IT, VT> * coo);
+  CSR<IT, VT>* COO2CSR(COO<IT, VT> * coo, bool alloc_val);
 
   template<typename IT, typename VT>
   void CSX_destroy(CSX<IT, VT>** csx);

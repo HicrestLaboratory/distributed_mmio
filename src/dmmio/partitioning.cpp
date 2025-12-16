@@ -29,7 +29,7 @@ namespace dmmio::partitioning {
           int nprocs
         ) {
           int chunk_size = PART_CHUNK_SIZE(dimtosplit,nprocs);
-          return (idx / chunk_size );
+          return (idx / chunk_size);
         }
 
         uint64_t cycle( // Previous name: edge2proc_1d_cycle
@@ -131,11 +131,11 @@ namespace dmmio::partitioning {
       }
     }
 
-    // Functions from edge to process
-    uint64_t groupowner (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) { // Previous name: edge2group
-      #ifndef SKIP_SETPARTFUNC_ASSERT
-        CCUTILS_ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
-      #endif
+      // Functions from edge to process
+      uint64_t groupowner (Partitioning *self, uint64_t glob_row_id, uint64_t glob_col_id) { // Previous name: edge2group
+        #ifndef SKIP_SETPARTFUNC_ASSERT
+          CCUTILS_ASSERT((self->grouprow2localrow!=NULL), "%s call before set_partitioning_functions\n", __func__);
+        #endif
         return( self->edge2group(glob_row_id, glob_col_id, self->global_rows, self->global_cols, (self->grid)->col_size, (self->grid)->row_size) );
       }
 

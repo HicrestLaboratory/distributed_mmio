@@ -47,7 +47,7 @@ template<typename IT, typename VT> using CSX   = mmio::CSX<IT, VT>;
   template CSX<IT, VT>*  mmio::CSR2CSX(CSR<IT, VT> * csr);                \
   template CSX<IT, VT>*  mmio::CSC2CSX(CSC<IT, VT> * csc);                \
   template COO<IT, VT>*  mmio::CSX2COO(CSX<IT, VT> * csx);                       \
-  template CSR<IT, VT>*  mmio::COO2CSR(COO<IT, VT> * coo);                       \
+  template CSR<IT, VT>*  mmio::COO2CSR(COO<IT, VT> * coo, bool alloc_val);       \
   template DENSE<IT,VT>* mmio::coo2dense(COO<IT, VT>* coo);               \
   template DENSE<IT,VT>* mmio::csr2dense(const CSR<IT,VT>* csr);          \
   template DENSE<IT,VT>* mmio::matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B);
@@ -410,8 +410,8 @@ namespace mmio {
 
 
   template<typename IT, typename VT>
-  CSR<IT, VT> * COO2CSR(COO<IT, VT> * coo) {
-    CSR<IT, VT> * csr = CSR_create<IT, VT>(coo->nrows, coo->ncols, coo->nnz, true);
+  CSR<IT, VT> * COO2CSR(COO<IT, VT> * coo, bool alloc_val) {
+    CSR<IT, VT> * csr = CSR_create<IT, VT>(coo->nrows, coo->ncols, coo->nnz, alloc_val);
 
     using Tr = Triple<IT, VT>;
     std::vector<Tr> triples(coo->nnz);
@@ -420,7 +420,9 @@ namespace mmio {
     {
         triples[i].row = coo->row[i];
         triples[i].col = coo->col[i];
-        triples[i].val = coo->val[i];
+        if (alloc_val) {
+            triples[i].val = coo->val[i];
+        }
     }
 
 
@@ -449,24 +451,23 @@ namespace mmio {
             return t.col;
         }
     );
-
-    std::vector<VT> vals(coo->nnz);
-    std::transform(triples.begin(), triples.end(),
-                   vals.begin(),
-        [&](auto& t)
-        {
-            return t.val;
-        }
-    );
-
+    
+    if (alloc_val) {
+        std::vector<VT> vals(coo->nnz);
+        std::transform(triples.begin(), triples.end(),
+                    vals.begin(),
+            [&](auto& t)
+            {
+                return t.val;
+            }
+        );
+        memcpy(csr->val, vals.data(), sizeof(VT) * coo->nnz);
+    }
 
     std::inclusive_scan(rowptrs.begin() + 1, rowptrs.end(), rowptrs.begin() + 1);
 
-
-    memcpy(csr->val, vals.data(), sizeof(VT) * coo->nnz);
     memcpy(csr->col_idx, colinds.data(), sizeof(IT) * coo->nnz);
     memcpy(csr->row_ptr, rowptrs.data(), sizeof(IT) * (coo->nrows + 1));
-
 
     return csr;
 

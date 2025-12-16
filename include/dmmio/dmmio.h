@@ -78,7 +78,18 @@ namespace dmmio {
     IT nrows;
     IT ncols;
     IT nnz;
-    IT * permutation;
+    IT *permutation;
+    bool permuted;
+  };
+
+  template <typename IT, typename VT>
+  struct DCSR {
+    Partitioning *partitioning;
+    mmio::CSR<IT, VT> *csr;
+    IT nrows;
+    IT ncols;
+    IT nnz;
+    IT *permutation;
     bool permuted;
   };
 
@@ -116,8 +127,14 @@ namespace dmmio {
     IT * perm_vec=nullptr
   );
 
+  template <typename IT, typename VT>
+  DCSR<IT, VT>* DCOO2DCSR(DCOO<IT, VT>* dcoo);
+
   template<typename IT, typename VT>
   void DCOO_destroy(DCOO<IT, VT>** dcoo);
+
+  template<typename IT, typename VT>
+  void DCSR_destroy(DCSR<IT, VT>** dcsr);
 
   /** Distributed DENSE container */
   template <typename IT, typename VT>

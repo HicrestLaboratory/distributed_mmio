@@ -173,4 +173,27 @@ namespace dmmio::utils {
       return 0;
   }
 
+  // template<typename IT, typename VT>
+  // void DCOO_print_as_dense(dmmio::DCOO<IT, VT> *coo, std::string header, FILE* fp) {
+  //   // // Build dense matrix
+  //   // std::vector<std::vector<VT>> dense(csr->nrows, std::vector<VT>(csr->ncols, static_cast<VT>(0)));
+  //   // for (IT row = 0; row < csr->nrows; ++row) {
+  //   //   for (IT idx = csr->row_ptr[row]; idx < csr->row_ptr[row + 1]; ++idx) {
+  //   //     IT col = csr->col_idx[idx];
+  //   //     dense[row][col] = csr->val ? csr->val[idx] : static_cast<VT>(1);
+  //   //   }
+  //   // }
+
+  //   // print_header(fp, header, csr->nrows, csr->ncols, csr->nnz);
+  //   // print_col_header(fp, csr->ncols);
+
+  //   for (IT row = 0; row < csr->nrows; ++row) {
+  //     fprintf(fp, "[%3u] ", (unsigned)coo->partitioning.);
+  //     // for (IT col = 0; col < csr->ncols; ++col) {
+  //     //   print_val(fp, dense[row][col]);
+  //     // }
+  //     fprintf(fp, "\n");
+  //   }
+  // }
+
 } // namespace dmmio::utils

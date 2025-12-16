@@ -30,7 +30,7 @@ namespace dmmio::io {
     CCUTILS_ASSERT(row_size > 0, "row_size must be > 0");
     CCUTILS_ASSERT(col_size > 0, "col_size must be > 0");
     CCUTILS_ASSERT(node_size > 0, "node_size must be > 0");
-    CCUTILS_ASSERT(row_size == col_size, "Currently only square grids are supported");
+    // TODO check if works CCUTILS_ASSERT(row_size == col_size, "Currently only square grids are supported");
 
     ProcessGrid *grid = (ProcessGrid*)malloc(sizeof(ProcessGrid));
 
