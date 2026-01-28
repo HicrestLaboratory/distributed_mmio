@@ -205,12 +205,13 @@ namespace dmmio {
 
 
     #ifdef DEBUG
-    MPI_ALL_PRINT(
-      for (int i=0; i<local_nnz; i++) {
-        fprintf(fp, "\t%lu, %lu, %lu --> %d\n", entries[i].row, entries[i].col, entries[i].val, owner[i]);
-      }
-      fprintf(fp, "\n");
-    )
+      CCUTILS_MPI_INIT
+      CCUTILS_MPI_ALL_PRINT(
+        for (int i=0; i<local_nnz; i++) {
+          fprintf(fp, "\t%lu, %lu, %lu --> %d\n", entries[i].row, entries[i].col, entries[i].val, owner[i]);
+        }
+        fprintf(fp, "\n");
+      )
     #endif
 
 
@@ -224,13 +225,13 @@ namespace dmmio {
     
 
     #ifdef DEBUG
-    MPI_ALL_PRINT(
-      fprintf(fp, "Sorted entries:\n");
-      for (int i=0; i<local_nnz; i++) {
-          fprintf(fp, "\t%lu, %lu, %lu --> %d\n", sorted_entries[i].row, sorted_entries[i].col, sorted_entries[i].val, owner[i]);
-      }
-      fprintf(fp, "\n");
-    )
+      CCUTILS_MPI_ALL_PRINT(
+        fprintf(fp, "Sorted entries:\n");
+        for (int i=0; i<local_nnz; i++) {
+            fprintf(fp, "\t%lu, %lu, %lu --> %d\n", sorted_entries[i].row, sorted_entries[i].col, sorted_entries[i].val, owner[i]);
+        }
+        fprintf(fp, "\n");
+      )
     #endif
 
     int* counts_send        = (int*)malloc(sizeof(int)*mpi_comm_size);
@@ -262,7 +263,7 @@ namespace dmmio {
 
   // #define DEBUG_ALLTOALLV
   #ifdef DEBUG_ALLTOALLV
-    MPI_ALL_PRINT(
+    CCUTILS_MPI_ALL_PRINT(
         fprintf(fp, "Rank %d of %d\n", rank, mpi_comm_size);
         fprintf(fp, "local_nnz: %d | total_recv: %d\n\n", local_nnz, total_recv);
 
