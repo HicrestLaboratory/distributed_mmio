@@ -38,11 +38,11 @@ using COO = mmio::COO<IT, VT>;
     template DCOO<IT, VT>* dmmio::DCOO_read(                                                                      \
         const char* filename, int mpi_comm_size, int rank, int grid_rows, int grid_cols, int grid_node_size,      \
         PartitioningType partitioning_type, Operation op, bool expl_val_for_bin_mtx, Matrix_Metadata* meta,       \
-        bool make_symmetric, bool remove_diagonal, int padding, bool permute, IT* perm_vec);                      \
+        bool sort, bool remove_duplicates, bool make_symmetric, bool remove_diagonal, int padding, bool permute, IT* perm_vec);                      \
     template DCOO<IT, VT>* dmmio::DCOO_read_f(                                                                    \
         FILE* f, int comm_size, int rank, int grid_rows, int grid_cols, int grid_node_size,                       \
         PartitioningType part_type, Operation op, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta, \
-        bool make_symmetric, bool remove_diagonal, int padding, bool permute, IT* perm_vec);                      \
+         bool sort, bool remove_duplicates, bool make_symmetric, bool remove_diagonal, int padding, bool permute, IT* perm_vec);                      \
     template void dmmio::DCOO_destroy(DCOO<IT, VT>** dcoo);                                                       \
     template void dmmio::DCSR_destroy(DCSR<IT, VT>** dcsr);                                                       \
     template DCSR<IT, VT>* dmmio::DCOO2DCSR(DCOO<IT, VT>* dcoo);
@@ -103,12 +103,12 @@ void Partitioning_destroy(Partitioning** partitioning) {
 template <typename IT, typename VT>
 DCOO<IT, VT>* DCOO_read(const char* filename, int mpi_comm_size, int rank, int grid_rows, int grid_cols,
                         int grid_node_size, PartitioningType partitioning_type, Operation op, bool expl_val_for_bin_mtx,
-                        Matrix_Metadata* meta, bool make_symmetric, bool remove_diagonal, int padding, bool permute,
+                        Matrix_Metadata* meta, bool sort, bool remove_duplicates, bool make_symmetric, bool remove_diagonal, int padding, bool permute,
                         IT* perm_vec) {
     return DCOO_read_f<IT, VT>(mmio::io::open_file_r(filename), mpi_comm_size, rank, grid_rows, grid_cols,
                                grid_node_size, partitioning_type, op,
                                mmio::io::mm_is_file_extension_bmtx(std::string(filename)), expl_val_for_bin_mtx, meta,
-                               make_symmetric, remove_diagonal, padding, permute, perm_vec);
+                                sort,  remove_duplicates, make_symmetric, remove_diagonal, padding, permute, perm_vec);
 }
 
 template <typename IT, typename VT>
@@ -144,7 +144,7 @@ void apply_symmetric_permutation(Entry<IT, VT>* entries, const IT n, IT* perm) {
 template <typename IT, typename VT>
 DCOO<IT, VT>* DCOO_read_f(FILE* f, int mpi_comm_size, int rank, int grid_rows, int grid_cols, int grid_node_size,
                           PartitioningType partitioning_type, Operation op, bool is_bmtx, bool expl_val_for_bin_mtx,
-                          Matrix_Metadata* meta, bool make_symmetric, bool remove_diagonal, int padding, bool permute,
+                          Matrix_Metadata* meta, bool sort, bool remove_duplicates,  bool make_symmetric, bool remove_diagonal, int padding, bool permute,
                           IT* perm_vec) {
     IT nrows, ncols, local_nnz;
     MM_typecode matcode;
@@ -292,13 +292,171 @@ DCOO<IT, VT>* DCOO_read_f(FILE* f, int mpi_comm_size, int rank, int grid_rows, i
     free(displacements_send);
     free(displacements_recv);
 
+
+    if (make_symmetric) {
+        const int comm_size = mpi_comm_size;
+        const int comm_rank = rank;
+
+        /* ============================================================
+         * 1. Count total entries including symmetry
+         * ============================================================ */
+        IT extra = 0;
+        for (IT i = 0; i < total_recv; ++i)
+            extra += (recv_entries[i].row != recv_entries[i].col);
+
+        const IT expanded_total = total_recv + extra;
+
+        /* ============================================================
+         * 2. Create MPI datatype for Entry
+         * ============================================================ */
+        MPI_Datatype MPI_ENTRY_TYPE;
+        MPI_Type_contiguous(sizeof(Entry<IT, VT>), MPI_BYTE, &MPI_ENTRY_TYPE);
+        MPI_Type_commit(&MPI_ENTRY_TYPE);
+
+        /* ============================================================
+         * 3. First pass: count sends for ALL entries
+         * ============================================================ */
+        std::vector<int> send_counts(comm_size, 0);
+
+        for (IT i = 0; i < total_recv; ++i) {
+            const auto& e = recv_entries[i];
+
+            // original
+            int owner = dmmio::partitioning::edgeowner::edge2owner(partitioning, e.row, e.col);
+
+            if (owner != comm_rank) {
+                ++send_counts[owner];
+            }
+
+            // symmetric
+            if (e.row != e.col) {
+                owner = dmmio::partitioning::edgeowner::edge2owner(partitioning, e.col, e.row);
+
+                if (owner != comm_rank)
+                    ++send_counts[owner];
+            }
+        }
+
+        /* ============================================================
+         * 4. Send displacements
+         * ============================================================ */
+        std::vector<int> send_displs(comm_size, 0);
+        for (int i = 1; i < comm_size; ++i)
+            send_displs[i] = send_displs[i - 1] + send_counts[i - 1];
+
+        const int total_send = send_displs.back() + send_counts.back();
+
+        Entry<IT, VT>* send_buf = static_cast<Entry<IT, VT>*>(malloc(total_send * sizeof(Entry<IT, VT>)));
+
+        std::vector<int> cursor = send_displs;
+
+        /* ============================================================
+         * 5. Pack ALL mis-owned entries
+         * ============================================================ */
+        for (IT i = 0; i < total_recv; ++i) {
+            const auto& e = recv_entries[i];
+
+            // original
+            int owner = dmmio::partitioning::edgeowner::edge2owner(partitioning, e.row, e.col);
+
+            if (owner != comm_rank) {
+                send_buf[cursor[owner]++] = e;
+            }
+
+            // symmetric
+            if (e.row != e.col) {
+                Entry<IT, VT> sym{e.col, e.row, e.val};
+
+                owner = dmmio::partitioning::edgeowner::edge2owner(partitioning, sym.row, sym.col);
+
+                if (owner != comm_rank)
+                    send_buf[cursor[owner]++] = sym;
+            }
+        }
+
+        /* ============================================================
+         * 6. Exchange counts
+         * ============================================================ */
+        std::vector<int> recv_counts(comm_size, 0);
+        MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+        /* ============================================================
+         * 7. Receive displacements
+         * ============================================================ */
+        std::vector<int> recv_displs(comm_size, 0);
+        for (int i = 1; i < comm_size; ++i)
+            recv_displs[i] = recv_displs[i - 1] + recv_counts[i - 1];
+
+        const int total_recv_new = recv_displs.back() + recv_counts.back();
+
+        Entry<IT, VT>* recv_new = static_cast<Entry<IT, VT>*>(malloc(total_recv_new * sizeof(Entry<IT, VT>)));
+
+        /* ============================================================
+         * 8. Exchange ALL mis-owned entries
+         * ============================================================ */
+        MPI_Alltoallv(send_buf, send_counts.data(), send_displs.data(), MPI_ENTRY_TYPE, recv_new, recv_counts.data(),
+                      recv_displs.data(), MPI_ENTRY_TYPE, MPI_COMM_WORLD);
+
+        free(send_buf);
+
+        /* ============================================================
+         * 9. Count locally owned entries
+         * ============================================================ */
+        IT local_count = 0;
+        for (IT i = 0; i < total_recv; ++i) {
+            const auto& e = recv_entries[i];
+            if (dmmio::partitioning::edgeowner::edge2owner(partitioning, e.row, e.col) == comm_rank)
+                ++local_count;
+
+            if (e.row != e.col && dmmio::partitioning::edgeowner::edge2owner(partitioning, e.col, e.row) == comm_rank)
+                ++local_count;
+        }
+
+        /* ============================================================
+         * 10. Final buffer
+         * ============================================================ */
+        Entry<IT, VT>* final_entries =
+            static_cast<Entry<IT, VT>*>(malloc((local_count + total_recv_new) * sizeof(Entry<IT, VT>)));
+
+        IT pos = 0;
+
+        // locally-owned originals + symmetric
+        for (IT i = 0; i < total_recv; ++i) {
+            const auto& e = recv_entries[i];
+
+            if (dmmio::partitioning::edgeowner::edge2owner(partitioning, e.row, e.col) == comm_rank)
+                final_entries[pos++] = e;
+
+            if (e.row != e.col && dmmio::partitioning::edgeowner::edge2owner(partitioning, e.col, e.row) == comm_rank)
+                final_entries[pos++] = Entry<IT, VT>{e.col, e.row, e.val};
+        }
+
+        // received entries
+        memcpy(final_entries + pos, recv_new, total_recv_new * sizeof(Entry<IT, VT>));
+        pos += total_recv_new;
+
+        free(recv_entries);
+        free(recv_new);
+
+        recv_entries = final_entries;
+        total_recv = pos;
+        local_nnz = pos;
+
+        /* ============================================================
+         * 11. Cleanup MPI datatype
+         * ============================================================ */
+        MPI_Type_free(&MPI_ENTRY_TYPE);
+    }
+
     COO<IT, VT>* coo = mmio::COO_create<IT, VT>(nrows, ncols, total_recv, expl_val_for_bin_mtx || !meta->is_pattern);
     mmio::io::Entries_to_COO<IT, VT>(recv_entries, coo);
+    mmio::COO_sort_and_deduplicate(coo, sort, remove_duplicates);
+
     dcoo->nrows = global_nrows;
     dcoo->ncols = global_ncols;
     dcoo->coo = coo;
     IT global_nnz;
-    MPI_Allreduce(&local_nnz, &global_nnz, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&(coo->nnz), &global_nnz, 1, MPI_UINT32_T, MPI_SUM, MPI_COMM_WORLD);
     dcoo->nnz = global_nnz;
 
     return dcoo;

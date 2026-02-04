@@ -3,22 +3,19 @@
 
 #include <stdint.h>
 #include <stdio.h>
+
 #include <string>
 
 #include "macros.h"
 
 namespace mmio {
 
-  /********************* Enums and Data Structures ***************************/
+/********************* Enums and Data Structures ***************************/
 
-  enum ValueType {
-    Real,
-    Integer,
-    Pattern
-  };
+enum ValueType { Real, Integer, Pattern };
 
-  /// @brief IMPORTANT: initialize with "new"
-  struct Matrix_Metadata {
+/// @brief IMPORTANT: initialize with "new"
+struct Matrix_Metadata {
     // Data type of matrix values
     ValueType value_type;
     // Size in bytes of each matrix value
@@ -31,75 +28,75 @@ namespace mmio {
     std::string mm_header_body;
     bool is_symmetric;
     bool is_pattern;
-    // NOTE: in a distributed read, this will not contain the owned diagonal_nnz, instead, the how many have been read from the mtx file chunk
+    // NOTE: in a distributed read, this will not contain the owned diagonal_nnz, instead, the how many have been read
+    // from the mtx file chunk
     size_t diagonal_nnz;
-  };
+};
 
-
-  template<typename IT, typename VT>
-  struct Triple {
+template <typename IT, typename VT>
+struct Triple {
     IT row;
     IT col;
     VT val;
-  };
+};
 
-  template<typename IT, typename VT>
-  struct COO {
+template <typename IT, typename VT>
+struct COO {
     IT nrows;
     IT ncols;
     IT nnz;
-    IT *row;
-    IT *col;
-    VT *val;
-  };
+    IT* row;
+    IT* col;
+    VT* val;
+};
 
-  template<typename IT, typename VT>
-  struct CSR {
-    IT 	nrows;
-    IT 	ncols;
-    IT 	nnz;
-    IT 	*row_ptr;
-    IT 	*col_idx;
-    VT 	*val;
-  };
-
-  template<typename IT, typename VT>
-  struct CSC {
-    IT 	nrows;
-    IT 	ncols;
-    IT 	nnz;
-    IT 	*col_ptr;
-    IT 	*row_idx;
-    VT 	*val;
-  };
-
-  enum MajorDim {
-    ROWS,  // i.e. CSR format
-    COLS   // i.e. CSC format
-  };
-
-  template<typename IT, typename VT>
-  struct CSX {
-    MajorDim majordim;
-    bool contig;
-    IT 	nrows;
-    IT 	ncols;
-    IT 	nnz;
-    size_t buf_size;
-    char * buf;
-    IT 	*ptr_vec;
-    IT 	*idx_vec;
-    VT 	*val;
-  };
-
-  template<typename IT, typename VT>
-  struct DENSE {
+template <typename IT, typename VT>
+struct CSR {
     IT nrows;
     IT ncols;
-    VT *val;
+    IT nnz;
+    IT* row_ptr;
+    IT* col_idx;
+    VT* val;
+};
+
+template <typename IT, typename VT>
+struct CSC {
+    IT nrows;
+    IT ncols;
+    IT nnz;
+    IT* col_ptr;
+    IT* row_idx;
+    VT* val;
+};
+
+enum MajorDim {
+    ROWS,  // i.e. CSR format
+    COLS   // i.e. CSC format
+};
+
+template <typename IT, typename VT>
+struct CSX {
+    MajorDim majordim;
+    bool contig;
+    IT nrows;
+    IT ncols;
+    IT nnz;
+    size_t buf_size;
+    char* buf;
+    IT* ptr_vec;
+    IT* idx_vec;
+    VT* val;
+};
+
+template <typename IT, typename VT>
+struct DENSE {
+    IT nrows;
+    IT ncols;
+    VT* val;
 
     // Equality operator
-    bool operator==(const DENSE &other) const {
+    bool operator==(const DENSE& other) const {
         if (nrows != other.nrows || ncols != other.ncols) {
             return false;
         }
@@ -116,99 +113,108 @@ namespace mmio {
     ~DENSE() {
         delete[] val;
     }
-  };
+};
 
-  /********************* Data Structures Functions ***************************/
+/********************* Data Structures Functions ***************************/
 
-  /** COO **/
-  template<typename IT, typename VT>
-  COO<IT, VT>* COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val);
+/** COO **/
+template <typename IT, typename VT>
+COO<IT, VT>* COO_create(IT nrows, IT ncols, IT nnz, bool alloc_val);
 
-  template<typename IT, typename VT>
-  void COO_destroy(COO<IT, VT>** coo);
+template <typename IT, typename VT>
+void COO_destroy(COO<IT, VT>** coo);
 
-  template<typename IT, typename VT>
-  COO<IT, VT>* COO_read(const char *filename, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL, bool remove_diagonal=false);
+template <typename IT, typename VT>
+void COO_sort_and_deduplicate(COO<IT, VT>* coo, bool sort, bool remove_duplicates);
 
-  template<typename IT, typename VT>
-  COO<IT, VT>* COO_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL, bool remove_diagonal=false);
+template <typename IT, typename VT>
+COO<IT, VT>* COO_read(const char* filename, bool expl_val_for_bin_mtx = false, Matrix_Metadata* meta = NULL,
+                      bool sort = true, bool remove_duplicates = true, bool make_symmetric = false,
+                      bool remove_diagonal = false);
 
-  template<typename IT, typename VT>
-  int COO_write(COO<IT, VT>* coo, const char *filename, bool write_as_binary, Matrix_Metadata* meta);
+template <typename IT, typename VT>
+COO<IT, VT>* COO_read_f(FILE* f, bool is_bmtx, bool expl_val_for_bin_mtx = false, Matrix_Metadata* meta = NULL,
+                        bool sort = true, bool remove_duplicates = true, bool make_symmetric = false,
+                        bool remove_diagonal = false);
 
-  template<typename IT, typename VT>
-  int COO_write_f(COO<IT, VT>* coo, FILE *f, bool write_as_binary, Matrix_Metadata* meta);
+template <typename IT, typename VT>
+int COO_write(COO<IT, VT>* coo, const char* filename, bool write_as_binary, Matrix_Metadata* meta);
 
-  /** CSR **/
-  template<typename IT, typename VT>
-  CSR<IT, VT>* CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val);
+template <typename IT, typename VT>
+int COO_write_f(COO<IT, VT>* coo, FILE* f, bool write_as_binary, Matrix_Metadata* meta);
 
-  template<typename IT, typename VT>
-  void CSR_destroy(CSR<IT, VT>** csr);
+/** CSR **/
+template <typename IT, typename VT>
+CSR<IT, VT>* CSR_create(IT nrows, IT ncols, IT nnz, bool alloc_val);
 
-  template<typename IT, typename VT>
-  CSR<IT, VT>* CSR_read(const char *filename, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL, bool remove_diagonal=false);
+template <typename IT, typename VT>
+void CSR_destroy(CSR<IT, VT>** csr);
 
-  template<typename IT, typename VT>
-  CSR<IT, VT>* CSR_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL, bool remove_diagonal=false);
+template <typename IT, typename VT>
+CSR<IT, VT>* CSR_read(const char* filename, bool expl_val_for_bin_mtx = false, Matrix_Metadata* meta = NULL,
+                      bool remove_diagonal = false);
 
-  /** CSC **/
-  template<typename IT, typename VT>
-  CSC<IT, VT>* CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val);
+template <typename IT, typename VT>
+CSR<IT, VT>* CSR_read_f(FILE* f, bool is_bmtx, bool expl_val_for_bin_mtx = false, Matrix_Metadata* meta = NULL,
+                        bool remove_diagonal = false);
 
-  template<typename IT, typename VT>
-  void CSC_destroy(CSC<IT, VT>** csc);
+/** CSC **/
+template <typename IT, typename VT>
+CSC<IT, VT>* CSC_create(IT nrows, IT ncols, IT nnz, bool alloc_val);
 
-  // TODO
+template <typename IT, typename VT>
+void CSC_destroy(CSC<IT, VT>** csc);
 
-  /** CSX **/
-  template<typename IT, typename VT>
-  size_t CSX_buf_size(IT nrows, IT ncols, IT nnz, MajorDim majordim);
+// TODO
 
-  template<typename IT, typename VT>
-  size_t CSX_buf_size(CSX<IT, VT> * csx);
+/** CSX **/
+template <typename IT, typename VT>
+size_t CSX_buf_size(IT nrows, IT ncols, IT nnz, MajorDim majordim);
 
-  template<typename IT, typename VT>
-  void CSX_get_ptrs(IT nrows, IT ncols, IT nnz, char * buf,
-                    IT ** ptr_vec, IT ** idx_vec, VT ** val_vec);
+template <typename IT, typename VT>
+size_t CSX_buf_size(CSX<IT, VT>* csx);
 
-  template<typename IT, typename VT>
-  CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim);
+template <typename IT, typename VT>
+void CSX_get_ptrs(IT nrows, IT ncols, IT nnz, char* buf, IT** ptr_vec, IT** idx_vec, VT** val_vec);
 
-  // template<typename IT, typename VT>
-  // CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim, bool device_alloc=false);
+template <typename IT, typename VT>
+CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim);
 
-  template<typename IT, typename VT>
-  CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT *ptr_vec, IT *idx_vec, VT *val_vec);
+// template<typename IT, typename VT>
+// CSX<IT, VT>* CSX_create_contig(IT nrows, IT ncols, IT nnz, bool alloc_val, MajorDim majordim, bool
+// device_alloc=false);
 
-  template<typename IT, typename VT>
-  CSX<IT, VT>* CSR2CSX(CSR<IT, VT> * csr);
+template <typename IT, typename VT>
+CSX<IT, VT>* CSX_create(IT nrows, IT ncols, IT nnz, MajorDim majordim, IT* ptr_vec, IT* idx_vec, VT* val_vec);
 
-  template<typename IT, typename VT>
-  CSX<IT, VT>* CSC2CSX(CSC<IT, VT> * csc);
+template <typename IT, typename VT>
+CSX<IT, VT>* CSR2CSX(CSR<IT, VT>* csr);
 
-  template<typename IT, typename VT>
-  COO<IT, VT>* CSX2COO(CSX<IT, VT> * csx);
+template <typename IT, typename VT>
+CSX<IT, VT>* CSC2CSX(CSC<IT, VT>* csc);
 
-  template<typename IT, typename VT>
-  CSR<IT, VT>* COO2CSR(COO<IT, VT> * coo, bool alloc_val);
+template <typename IT, typename VT>
+COO<IT, VT>* CSX2COO(CSX<IT, VT>* csx);
 
-  template<typename IT, typename VT>
-  void CSX_destroy(CSX<IT, VT>** csx);
+template <typename IT, typename VT>
+CSR<IT, VT>* COO2CSR(COO<IT, VT>* coo, bool alloc_val);
 
-  /** DENSE **/
-  template<typename IT, typename VT>
-  DENSE<IT,VT>* DENSE_create(IT n, IT m);
+template <typename IT, typename VT>
+void CSX_destroy(CSX<IT, VT>** csx);
 
-  template<typename IT, typename VT>
-  DENSE<IT,VT>* coo2dense(COO<IT, VT>* coo);
+/** DENSE **/
+template <typename IT, typename VT>
+DENSE<IT, VT>* DENSE_create(IT n, IT m);
 
-  template<typename IT, typename VT>
-  DENSE<IT,VT>* csr2dense(const CSR<IT,VT>* csr);
+template <typename IT, typename VT>
+DENSE<IT, VT>* coo2dense(COO<IT, VT>* coo);
 
-  template<typename IT, typename VT>
-  DENSE<IT,VT>* matmul(DENSE<IT,VT>* A, DENSE<IT,VT>* B);
+template <typename IT, typename VT>
+DENSE<IT, VT>* csr2dense(const CSR<IT, VT>* csr);
 
-} // namespace mmio
+template <typename IT, typename VT>
+DENSE<IT, VT>* matmul(DENSE<IT, VT>* A, DENSE<IT, VT>* B);
 
-#endif // __MMIO_H__
+}  // namespace mmio
+
+#endif  // __MMIO_H__

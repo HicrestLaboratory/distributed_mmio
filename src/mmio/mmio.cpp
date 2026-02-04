@@ -45,11 +45,14 @@ using CSX = mmio::CSX<IT, VT>;
     template void mmio::CSR_destroy(CSR<IT, VT>** csr);                                                                \
     template void mmio::CSC_destroy(CSC<IT, VT>** csc);                                                                \
     template void mmio::CSX_destroy(CSX<IT, VT>** csx);                                                                \
+    template void mmio::COO_sort_and_deduplicate(COO<IT, VT>* coo, bool sort, bool remove_duplicates);                 \
     template COO<IT, VT>* mmio::COO_read(const char* filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta,       \
+                                         bool sort, bool remove_duplicates, bool make_symmetric,                       \
                                          bool remove_diagonal);                                                        \
     template CSR<IT, VT>* mmio::CSR_read(const char* filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta,       \
                                          bool remove_diagonal);                                                        \
     template COO<IT, VT>* mmio::COO_read_f(FILE* f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta,    \
+                                           bool sort, bool remove_duplicates, bool make_symmetric,                     \
                                            bool remove_diagonal);                                                      \
     template CSR<IT, VT>* mmio::CSR_read_f(FILE* f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta,    \
                                            bool remove_diagonal);                                                      \
@@ -104,14 +107,99 @@ void COO_destroy(COO<IT, VT>** coo) {
 }
 
 template <typename IT, typename VT>
-COO<IT, VT>* COO_read(const char* filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta, bool remove_diagonal) {
-    return mmio::COO_read_f<IT, VT>(mmio::io::open_file_r(filename),
-                                    mmio::io::mm_is_file_extension_bmtx(std::string(filename)), expl_val_for_bin_mtx,
-                                    meta, remove_diagonal);
+void COO_sort_and_deduplicate(COO<IT, VT>* coo, bool sort, bool remove_duplicates) {
+    if (!coo || coo->nnz == 0)
+        return;
+
+    bool has_values = (coo->val != nullptr);
+
+    /* ============================================================
+     * 1. Create entries array for sorting
+     * ============================================================ */
+    if (sort) {
+        std::vector<Entry<IT, VT>> entries(coo->nnz);
+
+        for (IT i = 0; i < coo->nnz; ++i) {
+            entries[i].row = coo->row[i];
+            entries[i].col = coo->col[i];
+            if (has_values) {
+                entries[i].val = coo->val[i];
+            }
+        }
+
+        // Sort by row first, then by column
+        std::sort(entries.begin(), entries.end(), [](const Entry<IT, VT>& a, const Entry<IT, VT>& b) {
+            if (a.row != b.row)
+                return a.row < b.row;
+            return a.col < b.col;
+        });
+
+        /* ============================================================
+         * 2. Remove duplicates if requested
+         * ============================================================ */
+        IT new_nnz = coo->nnz;
+
+        if (remove_duplicates) {
+            IT write_pos = 0;
+
+            for (IT read_pos = 0; read_pos < coo->nnz; ++read_pos) {
+                // Check if this is a duplicate
+                bool is_duplicate = false;
+                if (write_pos > 0 && entries[write_pos - 1].row == entries[read_pos].row &&
+                    entries[write_pos - 1].col == entries[read_pos].col) {
+                    is_duplicate = true;
+
+                    // For duplicates with values, sum them
+                    if (has_values) {
+                        entries[write_pos - 1].val += entries[read_pos].val;
+                    }
+                }
+
+                if (!is_duplicate) {
+                    if (write_pos != read_pos) {
+                        entries[write_pos] = entries[read_pos];
+                    }
+                    ++write_pos;
+                }
+            }
+
+            new_nnz = write_pos;
+        }
+
+        /* ============================================================
+         * 3. Reallocate and copy back
+         * ============================================================ */
+        if (new_nnz != coo->nnz) {
+            coo->row = (IT*)realloc(coo->row, new_nnz * sizeof(IT));
+            coo->col = (IT*)realloc(coo->col, new_nnz * sizeof(IT));
+            if (has_values) {
+                coo->val = (VT*)realloc(coo->val, new_nnz * sizeof(VT));
+            }
+            coo->nnz = new_nnz;
+        }
+
+        // Copy sorted/deduplicated entries back
+        for (IT i = 0; i < new_nnz; ++i) {
+            coo->row[i] = entries[i].row;
+            coo->col[i] = entries[i].col;
+            if (has_values) {
+                coo->val[i] = entries[i].val;
+            }
+        }
+    }
 }
 
 template <typename IT, typename VT>
-COO<IT, VT>* COO_read_f(FILE* f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta, bool remove_diagonal) {
+COO<IT, VT>* COO_read(const char* filename, bool expl_val_for_bin_mtx, Matrix_Metadata* meta, bool sort,
+                      bool remove_duplicates, bool make_symmetric, bool remove_diagonal) {
+    return mmio::COO_read_f<IT, VT>(mmio::io::open_file_r(filename),
+                                    mmio::io::mm_is_file_extension_bmtx(std::string(filename)), expl_val_for_bin_mtx,
+                                    meta, sort, remove_duplicates, make_symmetric, remove_diagonal);
+}
+
+template <typename IT, typename VT>
+COO<IT, VT>* COO_read_f(FILE* f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix_Metadata* meta, bool sort,
+                        bool remove_duplicates, bool make_symmetric, bool remove_diagonal) {
     IT nrows, ncols, nnz;
     MM_typecode matcode;
     Entry<IT, VT>* entries =
@@ -119,10 +207,54 @@ COO<IT, VT>* COO_read_f(FILE* f, bool is_bmtx, bool expl_val_for_bin_mtx, Matrix
     if (entries == NULL)
         return NULL;
 
-    COO<IT, VT>* coo = COO_create<IT, VT>(nrows, ncols, nnz, expl_val_for_bin_mtx || !mm_is_pattern(matcode));
-    mmio::io::Entries_to_COO<IT, VT>(entries, coo);
+    IT final_nnz = nnz;
+    Entry<IT, VT>* final_entries = entries;
 
-    free(entries);
+    /* ============================================================
+     * Symmetrize if requested
+     * ============================================================ */
+    if (make_symmetric) {
+        // Count off-diagonal entries
+        IT off_diag_count = 0;
+        for (IT i = 0; i < nnz; ++i) {
+            if (entries[i].row != entries[i].col) {
+                ++off_diag_count;
+            }
+        }
+
+        // Allocate new array for symmetric matrix
+        final_nnz = nnz + off_diag_count;
+        final_entries = static_cast<Entry<IT, VT>*>(malloc(final_nnz * sizeof(Entry<IT, VT>)));
+
+        // Copy original entries and add symmetric counterparts
+        IT pos = 0;
+        for (IT i = 0; i < nnz; ++i) {
+            // Add original entry
+            final_entries[pos++] = entries[i];
+
+            // Add symmetric entry if off-diagonal
+            if (entries[i].row != entries[i].col) {
+                Entry<IT, VT> sym;
+                sym.row = entries[i].col;
+                sym.col = entries[i].row;
+                sym.val = entries[i].val;
+                final_entries[pos++] = sym;
+            }
+        }
+
+        free(entries);
+    }
+
+    /* ============================================================
+     * Create COO and convert
+     * ============================================================ */
+    bool has_values = expl_val_for_bin_mtx || !mm_is_pattern(matcode);
+    COO<IT, VT>* coo = COO_create<IT, VT>(nrows, ncols, final_nnz, has_values);
+    mmio::io::Entries_to_COO<IT, VT>(final_entries, coo);
+
+    free(final_entries);
+
+    COO_sort_and_deduplicate(coo, sort, remove_duplicates);
 
     return coo;
 }
