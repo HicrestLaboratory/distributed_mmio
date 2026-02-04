@@ -107,6 +107,7 @@ namespace dmmio {
     Operation op = Operation::None,
     bool expl_val_for_bin_mtx = false,
     mmio::Matrix_Metadata* meta = nullptr,
+    bool make_symmetric = false, bool remove_diagonal = false,
     int padding=1,
     bool permute=false,
     IT * perm_vec=nullptr
@@ -122,6 +123,7 @@ namespace dmmio {
     bool is_bmtx = false,
     bool expl_val_for_bin_mtx = false,
     mmio::Matrix_Metadata* meta = nullptr,
+    bool make_symmetric = false, bool remove_diagonal = false,
     int padding=1,
     bool permute=false,
     IT * perm_vec=nullptr

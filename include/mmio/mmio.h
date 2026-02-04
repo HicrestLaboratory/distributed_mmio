@@ -31,6 +31,8 @@ namespace mmio {
     std::string mm_header_body;
     bool is_symmetric;
     bool is_pattern;
+    // NOTE: in a distributed read, this will not contain the owned diagonal_nnz, instead, the how many have been read from the mtx file chunk
+    size_t diagonal_nnz;
   };
 
 
@@ -126,10 +128,10 @@ namespace mmio {
   void COO_destroy(COO<IT, VT>** coo);
 
   template<typename IT, typename VT>
-  COO<IT, VT>* COO_read(const char *filename, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL);
+  COO<IT, VT>* COO_read(const char *filename, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL, bool remove_diagonal=false);
 
   template<typename IT, typename VT>
-  COO<IT, VT>* COO_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL);
+  COO<IT, VT>* COO_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL, bool remove_diagonal=false);
 
   template<typename IT, typename VT>
   int COO_write(COO<IT, VT>* coo, const char *filename, bool write_as_binary, Matrix_Metadata* meta);
@@ -145,10 +147,10 @@ namespace mmio {
   void CSR_destroy(CSR<IT, VT>** csr);
 
   template<typename IT, typename VT>
-  CSR<IT, VT>* CSR_read(const char *filename, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL);
+  CSR<IT, VT>* CSR_read(const char *filename, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL, bool remove_diagonal=false);
 
   template<typename IT, typename VT>
-  CSR<IT, VT>* CSR_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL);
+  CSR<IT, VT>* CSR_read_f(FILE *f, bool is_bmtx, bool expl_val_for_bin_mtx=false, Matrix_Metadata* meta=NULL, bool remove_diagonal=false);
 
   /** CSC **/
   template<typename IT, typename VT>
