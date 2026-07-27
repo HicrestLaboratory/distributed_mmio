@@ -331,7 +331,7 @@ namespace mmio {
       #ifdef __CUDACC__
         cudaMalloc(&(csx->buf), csx->buf_size);
       #else
-        printf("WARNING: CUDA not available and 'device_alloc' is true. Allocating on the host. Is __CUDACC__ preprocessor variable set?\n")
+        printf("WARNING: CUDA not available and 'device_alloc' is true. Allocating on the host. Is __CUDACC__ preprocessor variable set?\n");
         csx->buf = (char *)malloc(csx->buf_size);
       #endif
     } else {
