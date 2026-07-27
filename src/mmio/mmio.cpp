@@ -10,7 +10,9 @@
 #include <algorithm>
 #include <string>
 #include <unistd.h>
-#include <cuda_runtime.h>
+#ifdef __CUDACC__
+    #include <cuda_runtime.h>
+#endif
 
 #include "../../include/mmio/mmio.h"
 #include "../../include/mmio/io.h"
@@ -326,7 +328,12 @@ namespace mmio {
 
     if (device_alloc) {
       csx->buf = (char *)malloc(csx->buf_size);
-      cudaMalloc(&(csx->buf), csx->buf_size);
+      #ifdef __CUDACC__
+        cudaMalloc(&(csx->buf), csx->buf_size);
+      #else
+        printf("WARNING: CUDA not available and 'device_alloc' is true. Allocating on the host. Is __CUDACC__ preprocessor variable set?\n")
+        csx->buf = (char *)malloc(csx->buf_size);
+      #endif
     } else {
       csx->buf = (char *)malloc(csx->buf_size);
     }
